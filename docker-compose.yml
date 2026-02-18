@@ -1,0 +1,79 @@
+services:
+  # Database: PostgreSQL 17
+  db:
+    image: postgres:17-alpine
+    container_name: tunorth_edms_db
+    environment:
+      POSTGRES_USER: admin
+      POSTGRES_PASSWORD: password123
+      POSTGRES_DB: tunorth_edms_db
+    ports:
+      - "5432:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    networks:
+      - app-network
+
+  # Adminer
+  adminer:
+    image: adminer:latest
+    container_name: tunorth_edms_adminer
+    ports:
+      - "8880:8080"
+    environment:
+      DB_HOST: db
+      DB_USER: admin
+      DB_PASSWORD: password123
+      DB_NAME: tunorth_edms_db
+      DB_PORT: 5432
+    depends_on:
+      - db
+    networks:
+      - app-network
+
+  # Backend: Go Fiber (Hot Reload with Air)
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: tunorth_backend
+    ports:
+      - "8080:8080"
+    volumes:
+      - ./backend:/app
+    environment:
+      DB_HOST: db
+      DB_USER: admin
+      DB_PASSWORD: password123
+      DB_NAME: tunorth_edms_db
+      DB_PORT: 5432
+      TELEGRAM_BOT_TOKEN: "YOUR_BOT_TOKEN_HERE" # จะใส่ทีหลัง
+    depends_on:
+      - db
+    networks:
+      - app-network
+
+  # Frontend: Next.js 16 (Bun Runtime)
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: tunorth_frontend
+    ports:
+      - "3000:3000"
+    volumes:
+      - ./frontend:/app
+      - /app/node_modules # ป้องกัน node_modules ใน container หาย
+    environment:
+      NEXT_PUBLIC_API_URL: http://localhost:8080
+    depends_on:
+      - backend
+    networks:
+      - app-network
+
+networks:
+  app-network:
+    driver: bridge
+
+volumes:
+  pgdata:
