@@ -21,6 +21,10 @@ func main() {
 	authService := services.NewAuthService(userRepo)
 	authHandler := handler.NewAuthHandler(authService)
 
+	docRepo := repository.NewDocumentRepository(database.DB)
+    docService := services.NewDocumentService(docRepo)
+    docHandler := handler.NewDocumentHandler(docService)
+
 	// 3. Setup Fiber App
 	app := fiber.New()
 	app.Use(logger.New())
@@ -29,12 +33,18 @@ func main() {
 		AllowHeaders: "Origin, Content-Type, Accept, Authorization",
 	}))
 
+	// Serve Static Files (เพื่อให้เปิดดูไฟล์ PDF ได้)
+    app.Static("/uploads", "./uploads")
+
 	// 4. Routes Definition
 	api := app.Group("/api")
 	v1 := api.Group("/v1")
 
 	// Auth Routes
 	v1.Post("/login", authHandler.Login)
+
+	// ++ Document Routes ++
+    v1.Post("/documents", docHandler.RegisterDocument) // API ลงรับหนังสือ
 	
 	// Test Route
 	v1.Get("/health", func(c *fiber.Ctx) error {
