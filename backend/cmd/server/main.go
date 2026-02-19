@@ -9,11 +9,19 @@ import (
 	"github.com/gofiber/fiber/v2"
 	"github.com/gofiber/fiber/v2/middleware/cors"
 	"github.com/gofiber/fiber/v2/middleware/logger"
+	"github.com/joho/godotenv"
+	"log"
 )
 
 func main() {
-	// 1. Infrastructure Setup
-	database.ConnectDB()
+	// 1. Load .env file (เพิ่มส่วนนี้)
+    err := godotenv.Load()
+    if err != nil {
+        log.Println("Warning: Error loading .env file (might be running in Docker)")
+    }
+
+    // 2. Connect Database
+    database.ConnectDB()
 
 	// 2. Dependency Injection (เชื่อมต่อ Layer ต่างๆ)
 	// Repo -> Service -> Handler
