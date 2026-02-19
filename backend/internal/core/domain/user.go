@@ -28,4 +28,5 @@ type Department struct {
 	gorm.Model
 	Name string `gorm:"unique;not null" json:"name"`
 	Code string `json:"code"` // รหัสฝ่าย (ถ้ามี)
+	TelegramChatID string `json:"telegram_chat_id"`
 }

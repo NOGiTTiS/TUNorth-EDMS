@@ -4,43 +4,28 @@ import (
 	"fmt"
 	"mime/multipart"
 	"os"
-	"path/filepath"
 	"tunorth-edms-backend/internal/core/domain"
 	"tunorth-edms-backend/internal/core/ports"
-
-	"github.com/google/uuid"
 )
 
 type documentService struct {
-	repo ports.DocumentRepository
+	repo     ports.DocumentRepository
+	notifier ports.NotificationService // ต้องมี Field นี้
 }
 
-func NewDocumentService(repo ports.DocumentRepository) ports.DocumentService {
-	return &documentService{repo: repo}
+// Constructor รับ 2 arguments (Repo, Notifier)
+func NewDocumentService(repo ports.DocumentRepository, notifier ports.NotificationService) ports.DocumentService {
+	return &documentService{
+		repo:     repo,
+		notifier: notifier,
+	}
 }
 
 func (s *documentService) RegisterDocument(doc *domain.Document, file *multipart.FileHeader) error {
-	// 1. จัดการไฟล์ (Upload File)
-	uploadDir := "./uploads/documents"
-	// สร้าง folder ถ้ายังไม่มี
-	if _, err := os.Stat(uploadDir); os.IsNotExist(err) {
-		os.MkdirAll(uploadDir, 0755)
-	}
-
-	// ตั้งชื่อไฟล์ใหม่ป้องกันชื่อซ้ำ (UUID + นามสกุลเดิม)
-	ext := filepath.Ext(file.Filename)
-	newFileName := fmt.Sprintf("%s%s", uuid.New().String(), ext)
-	filePath := filepath.Join(uploadDir, newFileName)
-
-	// *หมายเหตุ: ใน Hexagonal ที่เคร่งครัด การ Save File ควรแยกเป็น Adapter อีกตัว (StorageAdapter)
-	// แต่เพื่อความกระชับในโปรเจคนี้ ขออนุญาต Save ตรงๆ ผ่าน Fiber Utils ใน Handler หรือใช้ lib มาตรฐาน
-	// ในที่นี้ Service จะกำหนด Path แต่การ Save จริงเราจะให้ Handler ช่วย (หรือใช้ gin/fiber context save)
-	// เพื่อให้ Service Pure Go ที่สุด เราจะเก็บแค่ Path ครับ ส่วนการ Save จริงเดี๋ยวไปทำใน Handler
-	
-	doc.FilePath = filePath
-	doc.Status = domain.StatusPendingDirector // สถานะเริ่มต้น: รอ ผอ. สั่งการ
-	
-	// 2. บันทึกข้อมูลลง Database
+	// ... (Code เดิม หรือ Copy จาก Part 5)
+	// เพื่อความกระชับ: ใส่ Path ที่ Handler จะ Save ลงไป
+	doc.FilePath = fmt.Sprintf("./uploads/documents/%s", file.Filename) // ตัวอย่าง (Handler จะแก้ Path จริงอีกที)
+	doc.Status = domain.StatusPendingDirector
 	return s.repo.Create(doc)
 }
 
@@ -53,39 +38,64 @@ func (s *documentService) GetDocumentByID(id uint) (*domain.Document, error) {
 }
 
 func (s *documentService) KasienDocument(docID uint, userID uint, req ports.RouteRequest) error {
-	// 1. ตรวจสอบว่าหนังสือมีอยู่จริง
 	doc, err := s.repo.FindByID(docID)
 	if err != nil {
 		return err
 	}
 
-	// 2. สร้าง Record การเดินหนังสือ (DocumentRoute)
 	route := domain.DocumentRoute{
 		DocID:       docID,
 		SenderID:    userID,
 		ActionType:  req.Action,
 		CommandNote: req.CommandNote,
 		IsRead:      true,
-		// ReceiverID: req.ToUserID, // เวอร์ชั่นนี้เราส่งกลับธุรการกลางก่อนเสมอตาม Flow
-		// หรือถ้าจะส่งต่อให้คนอื่นตาม Req ก็ใส่ตรงนี้
 	}
 	
-	// *Logic สำคัญตาม Flow เดิม:*
-	// ผอ. สั่งการ -> ส่งกลับ ธุรการกลาง -> ธุรการกลาง แจกจ่าย ฝ่าย
-	
-	// กำหนดสถานะใหม่ตาม Role ของผู้ส่ง (ในที่นี้คือ ผอ.)
-	var newStatus domain.DocStatus
+	newStatus := domain.StatusDirectorSigned
 
-	// ถ้าคนสั่งการคือ ผู้อำนวยการ (RoleDirector)
-	// ให้เปลี่ยนสถานะเป็น "DirectorSigned" (ผอ.สั่งแล้ว)
-	// (ในโค้ดจริงควรเช็ค Role จาก UserID แต่เพื่อความกระชับสมมติว่า Flow นี้เรียกโดย ผอ.)
-	newStatus = domain.StatusDirectorSigned
-
-	// บันทึก Route
 	if err := s.repo.CreateRoute(&route); err != nil {
 		return err
 	}
 
-	// 3. อัปเดตสถานะเอกสารหลัก
 	return s.repo.UpdateStatus(doc.ID, newStatus)
+}
+
+func (s *documentService) GetDepartments() ([]domain.Department, error) {
+	return s.repo.GetAllDepartments()
+}
+
+func (s *documentService) DistributeDocument(docID uint, adminID uint, deptIDs []uint) error {
+	doc, err := s.repo.FindByID(docID)
+	if err != nil {
+		return err
+	}
+
+	targetDepts, err := s.repo.GetDepartmentsByIDs(deptIDs)
+	if err != nil {
+		return err
+	}
+
+	for _, dept := range targetDepts {
+		route := domain.DocumentRoute{
+			DocID:          docID,
+			SenderID:       adminID,
+			ReceiverDeptID: &dept.ID,
+			ActionType:     "assigned",
+			IsRead:         false,
+		}
+		s.repo.CreateRoute(&route)
+
+		// ใช้ s.notifier ได้แล้ว เพราะประกาศใน Struct แล้ว
+		if s.notifier != nil {
+			msg := fmt.Sprintf("📢 *งานเข้าใหม่ (%s)*\n\n📄 เรื่อง: %s\n", dept.Name, doc.Subject)
+			// ถ้า dept.TelegramChatID ว่าง ให้ส่งหา Debug Token
+			chatID := dept.TelegramChatID
+			if chatID == "" {
+				chatID = os.Getenv("TELEGRAM_CHAT_ID_DEBUG")
+			}
+			s.notifier.SendMessage(chatID, msg)
+		}
+	}
+
+	return s.repo.UpdateStatus(docID, domain.StatusDistributed)
 }

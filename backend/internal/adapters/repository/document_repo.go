@@ -43,3 +43,15 @@ func (r *documentRepo) UpdateStatus(id uint, status domain.DocStatus) error {
 func (r *documentRepo) CreateRoute(route *domain.DocumentRoute) error {
 	return r.db.Create(route).Error
 }
+
+func (r *documentRepo) GetAllDepartments() ([]domain.Department, error) {
+	var depts []domain.Department
+	err := r.db.Find(&depts).Error
+	return depts, err
+}
+
+func (r *documentRepo) GetDepartmentsByIDs(ids []uint) ([]domain.Department, error) {
+	var depts []domain.Department
+	err := r.db.Where("id IN ?", ids).Find(&depts).Error
+	return depts, err
+}

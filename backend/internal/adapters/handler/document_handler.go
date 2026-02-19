@@ -99,3 +99,33 @@ func (h *DocumentHandler) RouteDocument(c *fiber.Ctx) error {
 
 	return c.JSON(fiber.Map{"message": "บันทึกการสั่งการเรียบร้อยแล้ว"})
 }
+
+// GET /departments
+func (h *DocumentHandler) GetDepartments(c *fiber.Ctx) error {
+	depts, err := h.service.GetDepartments()
+	if err != nil {
+		return c.Status(500).JSON(fiber.Map{"error": err.Error()})
+	}
+	return c.JSON(fiber.Map{"data": depts})
+}
+
+// POST /documents/:id/distribute
+func (h *DocumentHandler) Distribute(c *fiber.Ctx) error {
+	id, _ := c.ParamsInt("id")
+	// Mock User Admin (ID 1)
+	userID := uint(1)
+
+	type DistributeReq struct {
+		DeptIDs []uint `json:"dept_ids"`
+	}
+	var req DistributeReq
+	if err := c.BodyParser(&req); err != nil {
+		return c.Status(400).JSON(fiber.Map{"error": "Invalid Request"})
+	}
+
+	if err := h.service.DistributeDocument(uint(id), userID, req.DeptIDs); err != nil {
+		return c.Status(500).JSON(fiber.Map{"error": err.Error()})
+	}
+
+	return c.JSON(fiber.Map{"message": "แจกจ่ายหนังสือสำเร็จ"})
+}

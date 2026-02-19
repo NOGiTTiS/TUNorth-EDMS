@@ -11,6 +11,8 @@ type DocumentRepository interface {
 	FindByID(id uint) (*domain.Document, error) // เพิ่ม: หาหนังสือตาม ID
 	UpdateStatus(id uint, status domain.DocStatus) error // เพิ่ม: อัปเดตสถานะ
 	CreateRoute(route *domain.DocumentRoute) error // เพิ่ม: บันทึกประวัติการส่ง
+	GetAllDepartments() ([]domain.Department, error) // เพิ่ม
+    GetDepartmentsByIDs(ids []uint) ([]domain.Department, error)
 }
 
 type DocumentService interface {
@@ -19,6 +21,8 @@ type DocumentService interface {
 	GetAllDocuments() ([]domain.Document, error) 
 	GetDocumentByID(id uint) (*domain.Document, error) // เพิ่ม
 	KasienDocument(docID uint, userID uint, req RouteRequest) error
+	GetDepartments() ([]domain.Department, error) // เพิ่ม
+    DistributeDocument(docID uint, adminID uint, deptIDs []uint) error
 }
 
 type RouteRequest struct {
