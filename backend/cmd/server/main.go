@@ -52,8 +52,10 @@ func main() {
 	v1.Post("/login", authHandler.Login)
 
 	// ++ Document Routes ++
-    v1.Post("/documents", docHandler.RegisterDocument) // API ลงรับหนังสือ
-	v1.Get("/documents", docHandler.GetDocuments)
+    v1.Post("/documents", docHandler.RegisterDocument)        // API ลงรับหนังสือ
+	v1.Get("/documents", docHandler.GetDocuments)			  
+	v1.Get("/documents/:id", docHandler.GetDocument)          // ดูรายละเอียด
+	v1.Post("/documents/:id/route", docHandler.RouteDocument) // เกษียรหนังสือ
 	
 	// Test Route
 	v1.Get("/health", func(c *fiber.Ctx) error {

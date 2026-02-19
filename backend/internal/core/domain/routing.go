@@ -21,7 +21,7 @@ type DocumentRoute struct {
 	ReceiverID     *uint      `json:"receiver_id"`                   // ผู้รับ (เช่น ผอ.) - อาจเป็น Null ถ้าส่งเข้าฝ่าย
 	ReceiverDeptID *uint      `json:"receiver_dept_id"`              // ส่งเข้าฝ่าย (เช่น ส่งให้ธุรการฝ่ายงบฯ)
 	
-	ActionType     ActionType `gorm:"type:varchar(20)" json:"action_type"` // สิ่งที่เลือก (ทราบ/อนุมัติ...)
+	ActionType     ActionType `gorm:"type:varchar(255)" json:"action_type"` // สิ่งที่เลือก (ทราบ/อนุมัติ...)
 	CommandNote    string     `gorm:"type:text" json:"command_note"`       // ข้อความสั่งการ
 	IsRead         bool       `gorm:"default:false" json:"is_read"`        // เปิดอ่านหรือยัง
 	ActionDate     *time.Time `json:"action_date"`                         // เวลาที่กดสั่งการ

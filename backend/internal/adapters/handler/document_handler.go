@@ -68,3 +68,34 @@ func (h *DocumentHandler) GetDocuments(c *fiber.Ctx) error {
 		"data": docs,
 	})
 }
+
+// GET /documents/:id
+func (h *DocumentHandler) GetDocument(c *fiber.Ctx) error {
+	id, _ := c.ParamsInt("id")
+	doc, err := h.service.GetDocumentByID(uint(id))
+	if err != nil {
+		return c.Status(404).JSON(fiber.Map{"error": "ไม่พบหนังสือ"})
+	}
+	return c.JSON(fiber.Map{"data": doc})
+}
+
+// POST /documents/:id/route
+func (h *DocumentHandler) RouteDocument(c *fiber.Ctx) error {
+	id, _ := c.ParamsInt("id")
+	
+	// ดึง User ID จาก Token (ใน Middleware ที่จะทำ หรือ Mock ไปก่อน)
+	// *เพื่อความรวดเร็วในการ Dev ตอนนี้ ให้ Hardcode ไปก่อนว่า User คือ ID 2 (Director)* 
+	// (จริงๆ ต้องดึงจาก c.Locals("user").(*jwt.Token)...)
+	userID := uint(2) 
+
+	var req ports.RouteRequest
+	if err := c.BodyParser(&req); err != nil {
+		return c.Status(400).JSON(fiber.Map{"error": "Invalid request"})
+	}
+
+	if err := h.service.KasienDocument(uint(id), userID, req); err != nil {
+		return c.Status(500).JSON(fiber.Map{"error": err.Error()})
+	}
+
+	return c.JSON(fiber.Map{"message": "บันทึกการสั่งการเรียบร้อยแล้ว"})
+}

@@ -25,3 +25,21 @@ func (r *documentRepo) FindAll() ([]domain.Document, error) {
 	err := r.db.Preload("CreatedBy").Order("created_at desc").Find(&docs).Error
 	return docs, err
 }
+
+func (r *documentRepo) FindByID(id uint) (*domain.Document, error) {
+	var doc domain.Document
+	// Preload Routings เพื่อดูประวัติการส่ง, Preload Sender ของ Route
+	err := r.db.Preload("CreatedBy").
+		Preload("Routings.Sender"). // ดึงชื่อคนส่ง
+		Preload("Routings.Receiver"). // ดึงชื่อคนรับ
+		First(&doc, id).Error
+	return &doc, err
+}
+
+func (r *documentRepo) UpdateStatus(id uint, status domain.DocStatus) error {
+	return r.db.Model(&domain.Document{}).Where("id = ?", id).Update("status", status).Error
+}
+
+func (r *documentRepo) CreateRoute(route *domain.DocumentRoute) error {
+	return r.db.Create(route).Error
+}

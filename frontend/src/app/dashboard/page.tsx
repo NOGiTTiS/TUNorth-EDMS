@@ -66,13 +66,9 @@ export default function DashboardPage() {
   };
 
   // ฟังก์ชันเปิดไฟล์ PDF
-  const openPdf = (filePath: string) => {
-    // filePath จาก Backend จะเป็น path เต็มเช่น "./uploads/documents/..."
-    // เราต้องแปลงให้เป็น URL ที่ Browser เข้าถึงได้
-    // ตัด "./" ออก แล้วต่อกับ API URL
-    const cleanPath = filePath.replace('./', ''); // uploads/documents/xxx.pdf
-    const url = `${process.env.NEXT_PUBLIC_API_URL}/${cleanPath}`;
-    window.open(url, '_blank');
+ const openPdf = (docId: number) => {
+    // เปลี่ยนเป็นไปหน้า Detail
+    router.push(`/dashboard/documents/${docId}`);
   };
 
   if (isLoading) {
@@ -143,7 +139,7 @@ export default function DashboardPage() {
                     <TableCell>
                       <div className="font-medium text-slate-800">{doc.subject}</div>
                       <div className="text-xs text-slate-500 mt-0.5">
-                        สร้างเมื่อ: {format(new Date(doc.CreatedAt), 'd MMM yy HH:mm', { locale: th })}
+                        สร้างเมื่อ: {format(new Date(doc.CreatedAt), 'd MMM yyyy HH:mm', { locale: th })}
                       </div>
                     </TableCell>
                     <TableCell>{doc.from}</TableCell>
@@ -155,7 +151,7 @@ export default function DashboardPage() {
                         variant="ghost" 
                         size="sm" 
                         className="text-pink-600 hover:text-pink-700 hover:bg-pink-50"
-                        onClick={() => openPdf(doc.file_path)}
+                        onClick={() => openPdf(doc.ID)} // ส่ง ID แทน Path
                       >
                         <FileText className="h-4 w-4 mr-1" />
                         เปิด
