@@ -53,6 +53,7 @@ func main() {
 
 	// ++ Document Routes ++
     v1.Post("/documents", docHandler.RegisterDocument) // API ลงรับหนังสือ
+	v1.Get("/documents", docHandler.GetDocuments)
 	
 	// Test Route
 	v1.Get("/health", func(c *fiber.Ctx) error {

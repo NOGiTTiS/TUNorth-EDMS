@@ -18,3 +18,10 @@ func NewDocumentRepository(db *gorm.DB) ports.DocumentRepository {
 func (r *documentRepo) Create(doc *domain.Document) error {
 	return r.db.Create(doc).Error
 }
+
+func (r *documentRepo) FindAll() ([]domain.Document, error) {
+	var docs []domain.Document
+	// ดึงข้อมูลทั้งหมด เรียงจากใหม่ไปเก่า (desc) และ Preload User ที่สร้าง
+	err := r.db.Preload("CreatedBy").Order("created_at desc").Find(&docs).Error
+	return docs, err
+}

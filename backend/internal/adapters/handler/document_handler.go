@@ -57,3 +57,14 @@ func (h *DocumentHandler) RegisterDocument(c *fiber.Ctx) error {
 		"data":    doc,
 	})
 }
+
+func (h *DocumentHandler) GetDocuments(c *fiber.Ctx) error {
+	docs, err := h.service.GetAllDocuments()
+	if err != nil {
+		return c.Status(500).JSON(fiber.Map{"error": err.Error()})
+	}
+
+	return c.JSON(fiber.Map{
+		"data": docs,
+	})
+}

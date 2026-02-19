@@ -43,3 +43,7 @@ func (s *documentService) RegisterDocument(doc *domain.Document, file *multipart
 	// 2. บันทึกข้อมูลลง Database
 	return s.repo.Create(doc)
 }
+
+func (s *documentService) GetAllDocuments() ([]domain.Document, error) {
+	return s.repo.FindAll()
+}

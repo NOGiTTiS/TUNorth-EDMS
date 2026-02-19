@@ -7,10 +7,12 @@ import (
 
 type DocumentRepository interface {
 	Create(doc *domain.Document) error
-	// ในอนาคตเพิ่ม FindAll, FindByID ได้ที่นี่
+	FindAll() ([]domain.Document, error)
+	// FindByID(id uint) (*domain.Document, error)
 }
 
 type DocumentService interface {
 	// รับข้อมูล File Header มาด้วยเพื่อ Save ลง Disk
 	RegisterDocument(doc *domain.Document, file *multipart.FileHeader) error
+	GetAllDocuments() ([]domain.Document, error) 
 }
