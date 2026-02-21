@@ -141,7 +141,7 @@ export default function EditDocumentPage({ params }: { params: Promise<{ id: str
 
         <div className="mt-6 flex justify-end gap-3">
             <Button type="button" variant="outline" onClick={() => router.back()}>ยกเลิก</Button>
-            <Button type="submit" className="bg-blue-600 hover:bg-blue-700" disabled={isLoading}>
+            <Button type="submit" className="bg-theme-main hover:bg-theme-main" disabled={isLoading}>
                 {isLoading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Save className="mr-2 h-4 w-4" />}
                 บันทึกการแก้ไข
             </Button>
