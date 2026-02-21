@@ -129,7 +129,7 @@ func (s *documentService) StampAndSign(docID uint, adminID uint, deptIDs []uint,
 	// =========================================================
 	// ส่วนที่ 2: ตราประทับเสนอ ผอ. (ด้านล่าง - เลียนแบบภาพ 1.png)
 	// =========================================================
-	propX, propY := 50.0, 500.0
+	propX, propY := 50.0, 450.0
 	pdf.RectFromUpperLeftWithStyle(propX, propY, 230.0, 120.0, "D") // วาดกรอบ
 
 	pdf.SetFont("prompt", "", 11)
