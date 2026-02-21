@@ -15,6 +15,7 @@ type DocumentRepository interface {
     GetDepartmentsByIDs(ids []uint) ([]domain.Department, error)
 	Update(doc *domain.Document) error
 	Delete(id uint) error
+	FindLastDocument() (*domain.Document, error)
 }
 
 type DocumentService interface {
@@ -28,6 +29,7 @@ type DocumentService interface {
 	StampAndSign(docID uint, adminID uint, deptIDs []uint, signatureData string, noteToDirector string) error 
 	UpdateDocumentInfo(id uint, req UpdateDocRequest) error // เพิ่ม: แก้ไขข้อมูล
 	DeleteDocument(id uint) error
+	GetNextReceiveNumber() (string, error)
 }
 
 // สร้าง Struct สำหรับรับค่าการแก้ไขข้อมูล

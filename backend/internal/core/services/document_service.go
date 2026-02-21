@@ -6,6 +6,7 @@ import (
 	"mime/multipart"
 	"os"
 	"path/filepath"
+	"strconv"
 	"strings"
 	"time"
 	"tunorth-edms-backend/internal/core/domain"
@@ -18,14 +19,16 @@ import (
 type documentService struct {
 	repo     ports.DocumentRepository
 	userRepo ports.UserRepository
+	settingRepo ports.SettingRepository
 	notifier ports.NotificationService
 }
 
 // NewDocumentService สร้าง Service พร้อมเชื่อมต่อ Repository และ Notification
-func NewDocumentService(repo ports.DocumentRepository, userRepo ports.UserRepository, notifier ports.NotificationService) ports.DocumentService {
+func NewDocumentService(repo ports.DocumentRepository, userRepo ports.UserRepository, settingRepo ports.SettingRepository, notifier ports.NotificationService) ports.DocumentService {
 	return &documentService{
 		repo:     repo,
 		userRepo: userRepo,
+		settingRepo: settingRepo,
 		notifier: notifier,
 	}
 }
@@ -412,3 +415,54 @@ func (s *documentService) DistributeDocument(docID uint, adminID uint, deptIDs [
 	return s.repo.UpdateStatus(docID, domain.StatusDistributed)
 }
 
+func (s *documentService) GetNextReceiveNumber() (string, error) {
+	// 1. ดึงรูปแบบการรันเลขจาก Setting
+	setting, err := s.settingRepo.GetByKey(domain.SetDocNumberFormat)
+	format := "continuous" // default
+	if err == nil {
+		format = setting.Value
+	}
+
+	// 2. ดึงหนังสือเล่มล่าสุดจากระบบ (เพื่อดูเลขล่าสุด)
+	// ต้องไปเพิ่ม FindLastDocument ใน Repo ก่อน (ดู Step 1.2)
+	lastDoc, err := s.repo.FindLastDocument()
+	
+	// กรณีเพิ่งเริ่มระบบ ยังไม่มีหนังสือเลย
+	if err != nil || lastDoc.ReceiveNo == "" {
+		if format == "yearly" {
+			return fmt.Sprintf("1/%d", time.Now().Year()+543), nil
+		}
+		return "1", nil
+	}
+
+	// 3. คำนวณเลขถัดไป
+	if format == "yearly" {
+		// รูปแบบ: X/2569
+		currentThaiYear := time.Now().Year() + 543
+		parts := strings.Split(lastDoc.ReceiveNo, "/")
+		
+		// ถ้ามีรูปแบบถูกต้องและปีตรงกัน
+		if len(parts) == 2 {
+			lastNum, _ := strconv.Atoi(parts[0])
+			lastYear, _ := strconv.Atoi(parts[1])
+
+			if lastYear == currentThaiYear {
+				// ปีเดียวกัน -> รันต่อ
+				return fmt.Sprintf("%d/%d", lastNum+1, currentThaiYear), nil
+			}
+		}
+		// ถ้าปีไม่ตรง (ขึ้นปีใหม่) หรือ Format ผิด -> รีเซ็ตเป็น 1
+		return fmt.Sprintf("1/%d", currentThaiYear), nil
+
+	} else {
+		// รูปแบบ: Continuous (เลขเพียวๆ)
+		// พยายามแปลงเลขล่าสุดเป็น Int แล้ว +1
+		// แต่ถ้าเจอเลขแปลกๆ (เช่น A-001) จะพยายามดึงเฉพาะตัวเลขหรือเริ่มใหม่
+		lastNum, err := strconv.Atoi(lastDoc.ReceiveNo)
+		if err != nil {
+			// กรณีแปลงไม่ได้ ให้เริ่ม 1 ใหม่ (หรืออาจจะต้องใช้ Regex ดึงตัวเลขถ้าซับซ้อนกว่านี้)
+			return "1", nil 
+		}
+		return strconv.Itoa(lastNum + 1), nil
+	}
+}

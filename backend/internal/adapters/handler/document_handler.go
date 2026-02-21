@@ -187,3 +187,12 @@ func (h *DocumentHandler) StampDocument(c *fiber.Ctx) error {
 
 	return c.JSON(fiber.Map{"message": "ประทับตราและส่งเสนอเรียบร้อย"})
 }
+
+func (h *DocumentHandler) GetNextNumber(c *fiber.Ctx) error {
+	nextNo, err := h.service.GetNextReceiveNumber()
+	if err != nil {
+		// กรณี Error ให้ Default เป็นว่างๆ ไป User กรอกเอง
+		return c.JSON(fiber.Map{"next_no": ""})
+	}
+	return c.JSON(fiber.Map{"next_no": nextNo})
+}

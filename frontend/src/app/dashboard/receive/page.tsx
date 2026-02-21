@@ -54,6 +54,24 @@ export default function ReceiveDocumentPage() {
     fetchDepts()
   }, [])
 
+  // เพิ่ม useEffect สำหรับดึงเลข Auto Run
+  useEffect(() => {
+    const fetchNextNo = async () => {
+        try {
+            const res = await api.get('/api/v1/documents/next-no');
+            if (res.data.next_no) {
+                setFormData(prev => ({
+                    ...prev,
+                    receive_no: res.data.next_no
+                }));
+            }
+        } catch (error) {
+            console.error("Auto-run number failed");
+        }
+    };
+    fetchNextNo();
+  }, []); // ทำงานครั้งเดียวตอนเปิดหน้า
+
   const handleChange = (
     e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>,
   ) => {

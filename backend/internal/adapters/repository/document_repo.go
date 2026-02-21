@@ -65,3 +65,10 @@ func (r *documentRepo) Delete(id uint) error {
 	// GORM ทำ Soft Delete (อัปเดต deleted_at) ไม่ได้ลบออกจาก Harddisk จริงๆ
 	return r.db.Delete(&domain.Document{}, id).Error
 }
+
+func (r *documentRepo) FindLastDocument() (*domain.Document, error) {
+	var doc domain.Document
+	// เรียงตาม ID ล่าสุด (Desc) เอาแค่ 1 ตัว
+	err := r.db.Order("id desc").First(&doc).Error
+	return &doc, err
+}

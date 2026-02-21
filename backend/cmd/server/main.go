@@ -39,8 +39,7 @@ func main() {
 	
 	// !! แก้ไขบรรทัดนี้ !!
 	// ส่ง 3 arguments: docRepo, userRepo, notifyService
-	docService := services.NewDocumentService(docRepo, userRepo, notifyService)
-	
+	docService := services.NewDocumentService(docRepo, userRepo, settingRepo, notifyService)
 	docHandler := handler.NewDocumentHandler(docService)
 
 	app := fiber.New()
@@ -61,12 +60,19 @@ func main() {
 
 	// --- Route Document ---
 	v1.Post("/documents", docHandler.RegisterDocument)
-	v1.Put("/documents/:id", docHandler.UpdateDocument)    // เพิ่ม Edit
-	v1.Delete("/documents/:id", docHandler.DeleteDocument) // เพิ่ม Delete
 	v1.Get("/documents", docHandler.GetDocuments)
+	
+	// !!! ย้ายบรรทัดนี้มาไว้ข้างบน !!!
+	v1.Get("/documents/next-no", docHandler.GetNextNumber) 
+
+	// Route ที่รับ ID ต้องอยู่ข้างล่างเสมอ
 	v1.Get("/documents/:id", docHandler.GetDocument)
+	v1.Put("/documents/:id", docHandler.UpdateDocument)
+	v1.Delete("/documents/:id", docHandler.DeleteDocument)
+	
 	v1.Post("/documents/:id/route", docHandler.RouteDocument)
-	v1.Post("/documents/:id/stamp", docHandler.StampDocument) // Route สำหรับ Stamp
+	v1.Post("/documents/:id/stamp", docHandler.StampDocument)
+	v1.Post("/documents/:id/distribute", docHandler.Distribute)
 	
 	// --- Route Department ---
 	v1.Get("/departments", docHandler.GetDepartments)
