@@ -129,3 +129,27 @@ func (h *DocumentHandler) Distribute(c *fiber.Ctx) error {
 
 	return c.JSON(fiber.Map{"message": "แจกจ่ายหนังสือสำเร็จ"})
 }
+
+type StampRequest struct {
+	DeptIDs        []uint `json:"dept_ids"`
+	SignatureData  string `json:"signature_data"`
+	NoteToDirector string `json:"note_to_director"` // เพิ่มตัวรับค่านี้
+}
+
+func (h *DocumentHandler) StampDocument(c *fiber.Ctx) error {
+	id, _ := c.ParamsInt("id")
+	userID := uint(1) // Mock Admin ID
+
+	var req StampRequest
+	if err := c.BodyParser(&req); err != nil {
+		return c.Status(400).JSON(fiber.Map{"error": "Invalid request"})
+	}
+
+	// อัปเดตการเรียกใช้: ส่ง req.NoteToDirector เข้าไปเป็น argument ที่ 5
+	err := h.service.StampAndSign(uint(id), userID, req.DeptIDs, req.SignatureData, req.NoteToDirector)
+	if err != nil {
+		return c.Status(500).JSON(fiber.Map{"error": err.Error()})
+	}
+
+	return c.JSON(fiber.Map{"message": "ประทับตราและส่งเสนอเรียบร้อย"})
+}

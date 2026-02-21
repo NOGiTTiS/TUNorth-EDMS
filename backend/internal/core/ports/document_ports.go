@@ -13,6 +13,7 @@ type DocumentRepository interface {
 	CreateRoute(route *domain.DocumentRoute) error // เพิ่ม: บันทึกประวัติการส่ง
 	GetAllDepartments() ([]domain.Department, error) // เพิ่ม
     GetDepartmentsByIDs(ids []uint) ([]domain.Department, error)
+	Update(doc *domain.Document) error
 }
 
 type DocumentService interface {
@@ -23,11 +24,11 @@ type DocumentService interface {
 	KasienDocument(docID uint, userID uint, req RouteRequest) error
 	GetDepartments() ([]domain.Department, error) // เพิ่ม
     DistributeDocument(docID uint, adminID uint, deptIDs []uint) error
+	StampAndSign(docID uint, adminID uint, deptIDs []uint, signatureData string, noteToDirector string) error 
 }
 
 type RouteRequest struct {
-	Action      domain.ActionType `json:"action"`       // ทราบ, อนุมัติ...
-	CommandNote string            `json:"command_note"` // ข้อความสั่งการ
-	ToUserID    *uint             `json:"to_user_id"`   // ส่งต่อใคร (ถ้ามี)
-	ToDeptID    *uint             `json:"to_dept_id"`   // ส่งต่อฝ่ายไหน (ถ้ามี)
+	Action      string `json:"action"`
+	CommandNote string `json:"command_note"`
+	SignatureData string `json:"signature_data"`
 }

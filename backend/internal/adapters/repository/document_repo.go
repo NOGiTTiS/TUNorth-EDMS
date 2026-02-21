@@ -55,3 +55,8 @@ func (r *documentRepo) GetDepartmentsByIDs(ids []uint) ([]domain.Department, err
 	err := r.db.Where("id IN ?", ids).Find(&depts).Error
 	return depts, err
 }
+
+func (r *documentRepo) Update(doc *domain.Document) error {
+	// ใช้ gorm.DB.Save() ซึ่งจะอัปเดตทุก field ของ struct ที่ส่งเข้ามา
+	return r.db.Save(doc).Error
+}

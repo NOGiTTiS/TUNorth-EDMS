@@ -35,3 +35,17 @@ func (r *userRepo) FindByUsername(username string) (*domain.User, error) {
 func (r *userRepo) CreateUser(user *domain.User) error {
 	return r.db.Create(user).Error
 }
+
+func (r *userRepo) FindByID(id uint) (*domain.User, error) {
+	var user domain.User
+	result := r.db.Preload("Department").First(&user, id)
+	
+	if result.Error != nil {
+		if errors.Is(result.Error, gorm.ErrRecordNotFound) {
+			return nil, errors.New("user not found")
+		}
+		return nil, result.Error
+	}
+	
+	return &user, nil
+}

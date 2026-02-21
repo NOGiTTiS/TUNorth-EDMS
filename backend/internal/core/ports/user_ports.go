@@ -6,6 +6,7 @@ import "tunorth-edms-backend/internal/core/domain"
 type UserRepository interface {
 	FindByUsername(username string) (*domain.User, error)
 	CreateUser(user *domain.User) error
+	FindByID(id uint) (*domain.User, error)
 }
 
 // AuthService: Business Logic ของการ Login
