@@ -21,13 +21,21 @@ func main() {
 
 	database.ConnectDB()
 
-	// Setup Layers (Dependency Injection)
+	// --- เพิ่ม User ---
 	userRepo := repository.NewUserRepository(database.DB)
 	authService := services.NewAuthService(userRepo)
 	authHandler := handler.NewAuthHandler(authService)
 
+	// --- เพิ่ม Notification ---
 	notifyService := notification.NewTelegramService()
+
+	// --- เพิ่ม Document ---
 	docRepo := repository.NewDocumentRepository(database.DB)
+
+	// --- เพิ่ม Settings ---
+	settingRepo := repository.NewSettingRepository(database.DB)
+	settingService := services.NewSettingService(settingRepo)
+	settingHandler := handler.NewSettingHandler(settingService)
 	
 	// !! แก้ไขบรรทัดนี้ !!
 	// ส่ง 3 arguments: docRepo, userRepo, notifyService
@@ -44,12 +52,14 @@ func main() {
 
 	app.Static("/uploads", "./uploads")
 
-	// Routes
+	// --- Route API ---
 	api := app.Group("/api")
 	v1 := api.Group("/v1")
 
+	// --- Route Auth ---
 	v1.Post("/login", authHandler.Login)
 
+	// --- Route Document ---
 	v1.Post("/documents", docHandler.RegisterDocument)
 	v1.Put("/documents/:id", docHandler.UpdateDocument)    // เพิ่ม Edit
 	v1.Delete("/documents/:id", docHandler.DeleteDocument) // เพิ่ม Delete
@@ -58,8 +68,13 @@ func main() {
 	v1.Post("/documents/:id/route", docHandler.RouteDocument)
 	v1.Post("/documents/:id/stamp", docHandler.StampDocument) // Route สำหรับ Stamp
 	
+	// --- Route Department ---
 	v1.Get("/departments", docHandler.GetDepartments)
 	v1.Post("/documents/:id/distribute", docHandler.Distribute)
 
+	// --- Route Settings ---
+	v1.Get("/settings", settingHandler.GetSettings)
+	v1.Put("/settings", settingHandler.UpdateSettings)
+	v1.Post("/settings/upload", settingHandler.UploadImage)
 	log.Fatal(app.Listen(":8080"))
 }
