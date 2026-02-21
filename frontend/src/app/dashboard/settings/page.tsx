@@ -464,7 +464,7 @@ export default function SettingsPage() {
 
         {/* 5. การแจ้งเตือน Telegram */}
         <TabsContent value="telegram" className="mt-4">
-          <Card className="shadow-sm border-slate-200 border-l-4 border-l-theme-main">
+          <Card className="shadow-sm border-slate-200">
             <CardHeader className="bg-slate-50 border-b rounded-t-lg">
               <CardTitle className="flex items-center gap-2">
                 <Send className="w-5 h-5 text-theme-main" />

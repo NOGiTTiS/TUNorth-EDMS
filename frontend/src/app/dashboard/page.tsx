@@ -113,7 +113,7 @@ export default function DashboardPage() {
             variant="secondary"
             className="bg-purple-100 text-purple-800 hover:bg-purple-200 border-purple-200"
           >
-            แจกจ่ายแล้ว
+            ส่งต่อธุรการฝ่ายแล้ว
           </Badge>
         )
       case "sent_to_head":

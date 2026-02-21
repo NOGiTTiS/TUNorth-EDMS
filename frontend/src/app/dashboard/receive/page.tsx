@@ -113,11 +113,33 @@ export default function ReceiveDocumentPage() {
 
       toast.success("ลงรับหนังสือและประทับตราสำเร็จ")
       router.push("/dashboard")
-    } catch (error) {
-      console.error(error)
-      toast.error("เกิดข้อผิดพลาดในกระบวนการลงรับหนังสือ")
+    } catch (error: any) {
+      // เช็คว่า Error มาจาก Response ของ Server หรือไม่
+      if (error.response) {
+        // กรณีที่ Server ตอบกลับมา (เช่น 409, 500)
+        if (error.response.status === 409) {
+            // กรณีเลขซ้ำ (409 Conflict) -> แสดง Toast เตือนอย่างเดียว ไม่ต้อง console.error
+            toast.error('ข้อมูลซ้ำ', {
+                description: error.response.data.error || 'เลขทะเบียนรับนี้มีอยู่ในระบบแล้ว'
+            });
+        } else {
+            // กรณี Error อื่นๆ -> ค่อย Log ลง Console
+            console.error("Server Error:", error);
+            toast.error('เกิดข้อผิดพลาดจากระบบ', {
+                description: error.response.data.error || 'กรุณาลองใหม่อีกครั้ง'
+            });
+        }
+      } else if (error.request) {
+        // กรณีส่ง Request ไปแล้วแต่ไม่ได้รับ Response (เน็ตหลุด/Server ดับ)
+        console.error("Network Error:", error);
+        toast.error('ไม่สามารถเชื่อมต่อ Server ได้');
+      } else {
+        // กรณีอื่นๆ
+        console.error("Error:", error);
+        toast.error('เกิดข้อผิดพลาดบางอย่าง');
+      }
     } finally {
-      setIsLoading(false)
+      setIsLoading(false);
     }
   }
 

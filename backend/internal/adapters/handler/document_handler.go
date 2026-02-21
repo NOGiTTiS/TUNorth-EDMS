@@ -1,6 +1,8 @@
 package handler
 
 import (
+	"fmt"
+	"strings"
 	"time"
 	"tunorth-edms-backend/internal/core/domain"
 	"tunorth-edms-backend/internal/core/ports"
@@ -30,7 +32,6 @@ func (h *DocumentHandler) RegisterDocument(c *fiber.Ctx) error {
 	}
 
 	// 2. รับข้อมูล Form Data
-	// หมายเหตุ: การใช้ c.FormValue รับค่าจะเป็น String ต้องแปลงเป็น Time หรือ Int ตามต้องการ
 	receiveDate, _ := time.Parse("2006-01-02", c.FormValue("receive_date"))
 	docDate, _ := time.Parse("2006-01-02", c.FormValue("doc_date"))
 
@@ -42,18 +43,24 @@ func (h *DocumentHandler) RegisterDocument(c *fiber.Ctx) error {
 		From:          c.FormValue("from"),
 		To:            c.FormValue("to"),
 		Subject:       c.FormValue("subject"),
-		PhysicalStore: "ธุรการกลาง", // Default
-		// CreatedByID:  ดึงจาก JWT Token (Middleware) - เดี๋ยวทำ Part หน้า
-		CreatedByID: 1, // Mock ไว้ก่อนว่าเป็น Admin (ID 1)
+		PhysicalStore: "ธุรการกลาง",
+		CreatedByID:   1, // Mock Admin ID
 	}
 
 	// 3. เรียก Service
 	if err := h.service.RegisterDocument(&doc, file); err != nil {
+		// --- ดักจับ Error เลขซ้ำตรงนี้ ---
+		if strings.Contains(err.Error(), "23505") || strings.Contains(err.Error(), "duplicate key") {
+			return c.Status(409).JSON(fiber.Map{
+				"error": fmt.Sprintf("เลขทะเบียนรับ '%s' มีอยู่ในระบบแล้ว", doc.ReceiveNo),
+			})
+		}
+		// -----------------------------
+		
 		return c.Status(500).JSON(fiber.Map{"error": err.Error()})
 	}
 
-	// 4. Save File จริงๆ (Fiber Helper)
-	// Service กำหนด Path ไว้ใน doc.FilePath แล้ว
+	// 4. Save File (Service กำหนด Path ไว้แล้ว)
 	if err := c.SaveFile(file, doc.FilePath); err != nil {
 		return c.Status(500).JSON(fiber.Map{"error": "บันทึกไฟล์ไม่สำเร็จ: " + err.Error()})
 	}

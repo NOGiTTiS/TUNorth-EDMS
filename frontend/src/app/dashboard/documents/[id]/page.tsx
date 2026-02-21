@@ -333,7 +333,7 @@ export default function DocumentDetailPage({
               </Card>
             )}
 
-          {/* FLOW 3: สำหรับสถานะแจกจ่ายแล้ว */}
+          {/* FLOW 3: สำหรับสถานะส่งต่อธุรการฝ่ายแล้ว */}
           {document.status === "distributed" && (
             <Card className="bg-green-50 border-green-200">
               <CardContent className="pt-6 text-center space-y-3">

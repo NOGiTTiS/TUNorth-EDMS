@@ -2,6 +2,7 @@ package domain
 
 import (
 	"time"
+
 	"gorm.io/gorm"
 )
 
@@ -9,8 +10,8 @@ type DocStatus string
 
 const (
 	StatusPendingDirector DocStatus = "pending_director" // รอ ผอ. สั่งการ
-	StatusDirectorSigned  DocStatus = "director_signed"  // ผอ. สั่งการแล้ว (รอธุรการกลางแจกจ่าย)
-	StatusDistributed     DocStatus = "distributed"      // แจกจ่ายแล้ว (ถึงธุรการฝ่าย)
+	StatusDirectorSigned  DocStatus = "director_signed"  // ผอ. สั่งการแล้ว (รอธุรการกลางส่งต่อ)
+	StatusDistributed     DocStatus = "distributed"      // ส่งต่อธุรการฝ่ายแล้ว (ถึงธุรการฝ่าย)
 	StatusPendingDeputy   DocStatus = "pending_deputy"   // รอ รอง ผอ.
 	StatusDeputySigned    DocStatus = "deputy_signed"    // รอง ผอ. สั่งการแล้ว
 	StatusSentToHead      DocStatus = "sent_to_head"     // ส่งหัวหน้างาน (จบกระบวนการ)
@@ -28,9 +29,9 @@ type Document struct {
 	FilePath      string    `json:"file_path"`                              // ไฟล์ PDF ต้นฉบับ
 	PhysicalStore string    `json:"physical_store"`                         // เก็บต้นฉบับที่ไหน
 	Status        DocStatus `gorm:"type:varchar(20);default:'pending_director'" json:"status"`
-	
+
 	// Relationships
-	CreatedByID   uint      `json:"created_by_id"`
-	CreatedBy     User      `gorm:"foreignKey:CreatedByID" json:"created_by"`
-	Routings      []DocumentRoute `gorm:"foreignKey:DocID" json:"routings"`
+	CreatedByID uint            `json:"created_by_id"`
+	CreatedBy   User            `gorm:"foreignKey:CreatedByID" json:"created_by"`
+	Routings    []DocumentRoute `gorm:"foreignKey:DocID" json:"routings"`
 }
