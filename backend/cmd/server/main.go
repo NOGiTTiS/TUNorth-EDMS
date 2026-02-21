@@ -51,6 +51,8 @@ func main() {
 	v1.Post("/login", authHandler.Login)
 
 	v1.Post("/documents", docHandler.RegisterDocument)
+	v1.Put("/documents/:id", docHandler.UpdateDocument)    // เพิ่ม Edit
+	v1.Delete("/documents/:id", docHandler.DeleteDocument) // เพิ่ม Delete
 	v1.Get("/documents", docHandler.GetDocuments)
 	v1.Get("/documents/:id", docHandler.GetDocument)
 	v1.Post("/documents/:id/route", docHandler.RouteDocument)

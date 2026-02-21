@@ -12,6 +12,12 @@ type DocumentHandler struct {
 	service ports.DocumentService
 }
 
+type StampRequest struct {
+	DeptIDs        []uint `json:"dept_ids"`
+	SignatureData  string `json:"signature_data"`
+	NoteToDirector string `json:"note_to_director"` // เพิ่มตัวรับค่านี้
+}
+
 func NewDocumentHandler(service ports.DocumentService) *DocumentHandler {
 	return &DocumentHandler{service: service}
 }
@@ -56,6 +62,33 @@ func (h *DocumentHandler) RegisterDocument(c *fiber.Ctx) error {
 		"message": "ลงรับหนังสือสำเร็จ",
 		"data":    doc,
 	})
+}
+
+// PUT /documents/:id
+func (h *DocumentHandler) UpdateDocument(c *fiber.Ctx) error {
+	id, _ := c.ParamsInt("id")
+	
+	var req ports.UpdateDocRequest
+	if err := c.BodyParser(&req); err != nil {
+		return c.Status(400).JSON(fiber.Map{"error": "ข้อมูลไม่ถูกต้อง"})
+	}
+
+	if err := h.service.UpdateDocumentInfo(uint(id), req); err != nil {
+		return c.Status(500).JSON(fiber.Map{"error": err.Error()})
+	}
+
+	return c.JSON(fiber.Map{"message": "อัปเดตข้อมูลสำเร็จ"})
+}
+
+// DELETE /documents/:id
+func (h *DocumentHandler) DeleteDocument(c *fiber.Ctx) error {
+	id, _ := c.ParamsInt("id")
+	
+	if err := h.service.DeleteDocument(uint(id)); err != nil {
+		return c.Status(500).JSON(fiber.Map{"error": err.Error()})
+	}
+
+	return c.JSON(fiber.Map{"message": "ลบหนังสือสำเร็จ"})
 }
 
 func (h *DocumentHandler) GetDocuments(c *fiber.Ctx) error {
@@ -128,12 +161,6 @@ func (h *DocumentHandler) Distribute(c *fiber.Ctx) error {
 	}
 
 	return c.JSON(fiber.Map{"message": "แจกจ่ายหนังสือสำเร็จ"})
-}
-
-type StampRequest struct {
-	DeptIDs        []uint `json:"dept_ids"`
-	SignatureData  string `json:"signature_data"`
-	NoteToDirector string `json:"note_to_director"` // เพิ่มตัวรับค่านี้
 }
 
 func (h *DocumentHandler) StampDocument(c *fiber.Ctx) error {

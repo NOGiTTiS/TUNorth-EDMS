@@ -60,3 +60,8 @@ func (r *documentRepo) Update(doc *domain.Document) error {
 	// ใช้ gorm.DB.Save() ซึ่งจะอัปเดตทุก field ของ struct ที่ส่งเข้ามา
 	return r.db.Save(doc).Error
 }
+
+func (r *documentRepo) Delete(id uint) error {
+	// GORM ทำ Soft Delete (อัปเดต deleted_at) ไม่ได้ลบออกจาก Harddisk จริงๆ
+	return r.db.Delete(&domain.Document{}, id).Error
+}

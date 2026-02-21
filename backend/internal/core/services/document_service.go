@@ -47,6 +47,37 @@ func (s *documentService) RegisterDocument(doc *domain.Document, file *multipart
 	return s.repo.Create(doc)
 }
 
+func (s *documentService) UpdateDocumentInfo(id uint, req ports.UpdateDocRequest) error {
+	doc, err := s.repo.FindByID(id)
+	if err != nil {
+		return err
+	}
+
+	// แปลงวันที่จาก String กลับเป็น time.Time
+	if req.ReceiveDate != "" {
+		parsedDate, _ := time.Parse("2006-01-02", req.ReceiveDate)
+		doc.ReceiveDate = parsedDate
+	}
+	if req.DocDate != "" {
+		parsedDate, _ := time.Parse("2006-01-02", req.DocDate)
+		doc.DocDate = parsedDate
+	}
+
+	// อัปเดตฟิลด์อื่นๆ
+	if req.ReceiveNo != "" { doc.ReceiveNo = req.ReceiveNo }
+	if req.DocNo != "" { doc.DocNo = req.DocNo }
+	if req.From != "" { doc.From = req.From }
+	if req.To != "" { doc.To = req.To }
+	if req.Subject != "" { doc.Subject = req.Subject }
+
+	// บันทึกลง Database
+	return s.repo.Update(doc)
+}
+
+func (s *documentService) DeleteDocument(id uint) error {
+	return s.repo.Delete(id)
+}
+
 // StampAndSign กระบวนการประทับตรา 2 จุด และลงนามธุรการลงใน PDF
 func (s *documentService) StampAndSign(docID uint, adminID uint, deptIDs []uint, signatureData string, noteToDirector string) error {
 	// 1. ดึงข้อมูลจากฐานข้อมูล

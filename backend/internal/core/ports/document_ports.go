@@ -14,6 +14,7 @@ type DocumentRepository interface {
 	GetAllDepartments() ([]domain.Department, error) // เพิ่ม
     GetDepartmentsByIDs(ids []uint) ([]domain.Department, error)
 	Update(doc *domain.Document) error
+	Delete(id uint) error
 }
 
 type DocumentService interface {
@@ -25,6 +26,19 @@ type DocumentService interface {
 	GetDepartments() ([]domain.Department, error) // เพิ่ม
     DistributeDocument(docID uint, adminID uint, deptIDs []uint) error
 	StampAndSign(docID uint, adminID uint, deptIDs []uint, signatureData string, noteToDirector string) error 
+	UpdateDocumentInfo(id uint, req UpdateDocRequest) error // เพิ่ม: แก้ไขข้อมูล
+	DeleteDocument(id uint) error
+}
+
+// สร้าง Struct สำหรับรับค่าการแก้ไขข้อมูล
+type UpdateDocRequest struct {
+	ReceiveNo   string `json:"receive_no"`
+	ReceiveDate string `json:"receive_date"` // ส่งมาเป็น "YYYY-MM-DD"
+	DocNo       string `json:"doc_no"`
+	DocDate     string `json:"doc_date"`
+	From        string `json:"from"`
+	To          string `json:"to"`
+	Subject     string `json:"subject"`
 }
 
 type RouteRequest struct {
