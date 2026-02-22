@@ -1,2 +1,3 @@
-/upload/documents/*
-/upload/documents
+/uploads/documents/*
+
+.env*
