@@ -179,7 +179,7 @@ export default function ReceiveDocumentPage() {
         <div className="lg:col-span-2 space-y-6">
           <Card>
             <CardHeader className="bg-slate-50/50 border-b">
-              <CardTitle className="text-lg text-theme-dark">
+              <CardTitle className="text-lg text-theme-main">
                 1. ข้อมูลหนังสือ
               </CardTitle>
             </CardHeader>
@@ -279,7 +279,7 @@ export default function ReceiveDocumentPage() {
 
           <Card>
             <CardHeader className="bg-slate-50/50 border-b">
-              <CardTitle className="text-lg text-theme-dark">
+              <CardTitle className="text-lg text-theme-main">
                 2. การคัดกรองฝ่ายที่รับผิดชอบ
               </CardTitle>
             </CardHeader>
@@ -312,7 +312,7 @@ export default function ReceiveDocumentPage() {
         <div className="space-y-6">
           <Card className="border-theme-main-light shadow-md sticky top-6">
             <CardHeader className="bg-slate-50/50 border-b">
-              <CardTitle className="text-lg text-theme-dark">
+              <CardTitle className="text-lg text-theme-main">
                 3. เสนอผู้อำนวยการ
               </CardTitle>
             </CardHeader>

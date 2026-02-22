@@ -10,6 +10,7 @@ type UserRepository interface {
 	FindAll() ([]domain.User, error)
 	Update(user *domain.User) error
 	Delete(id uint) error
+	FindByRole(role string) ([]domain.User, error)
 }
 
 // AuthService: Business Logic ของการ Login

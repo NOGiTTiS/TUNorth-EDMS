@@ -42,6 +42,56 @@ interface Department {
   name: string
 }
 
+// --- ฟังก์ชันเสริม: แปลงสถานะเป็นภาษาไทยและใส่สี ---
+const getStatusBadge = (status: string) => {
+  switch (status) {
+    case "draft":
+      return (
+        <Badge variant="outline" className="text-slate-500 bg-slate-50">
+          ร่าง / รอประทับตรา
+        </Badge>
+      )
+    case "pending_director":
+      return (
+        <Badge
+          variant="secondary"
+          className="bg-yellow-100 text-yellow-800 border-yellow-200"
+        >
+          รอ ผอ. สั่งการ
+        </Badge>
+      )
+    case "director_signed":
+      return (
+        <Badge
+          variant="secondary"
+          className="bg-blue-100 text-blue-800 border-blue-200"
+        >
+          ผอ. สั่งการแล้ว
+        </Badge>
+      )
+    case "distributed":
+      return (
+        <Badge
+          variant="secondary"
+          className="bg-green-100 text-green-800 border-green-200"
+        >
+          ส่งต่อธุรการฝ่ายแล้ว
+        </Badge>
+      )
+    case "sent_to_head":
+      return (
+        <Badge
+          variant="secondary"
+          className="bg-purple-100 text-purple-800 border-purple-200"
+        >
+          ดำเนินการเสร็จสิ้น
+        </Badge>
+      )
+    default:
+      return <Badge variant="outline">{status}</Badge>
+  }
+}
+
 export default function DocumentDetailPage({
   params,
 }: {
@@ -166,10 +216,12 @@ export default function DocumentDetailPage({
       {/* Header Bar */}
       <div className="flex items-center gap-4 mb-4 bg-white p-4 rounded-lg shadow-sm border">
         <Button variant="ghost" size="icon" onClick={() => router.back()}>
-          <ArrowLeft className="h-5 w-5" />
+          <ArrowLeft className="h-5 w-5 text-theme-main" />
         </Button>
         <div className="flex-1">
-          <h1 className="text-lg font-bold truncate">{document.subject}</h1>
+          <h1 className="text-lg font-bold truncate text-theme-main">
+            {document.subject}
+          </h1>
           <div className="flex items-center gap-3 text-xs text-slate-500">
             <span>เลขรับ: {document.receive_no}</span>
             <span>|</span>
@@ -183,9 +235,9 @@ export default function DocumentDetailPage({
             </span>
           </div>
         </div>
-        <Badge variant="outline" className="bg-slate-50">
-          {document.status}
-        </Badge>
+
+        {/* --- เปลี่ยนมาเรียกใช้ฟังก์ชัน getStatusBadge ตรงนี้ --- */}
+        {getStatusBadge(document.status)}
       </div>
 
       <div className="flex-1 flex flex-col md:flex-row gap-6 overflow-hidden">

@@ -19,6 +19,7 @@ import {
   DialogContent,
   DialogHeader,
   DialogTitle,
+  DialogDescription,
 } from "@/components/ui/dialog"
 import { Edit, Trash2, PlusCircle, Building2 } from "lucide-react"
 import { PageHeader } from "@/components/dashboard/page-header"
@@ -95,43 +96,45 @@ export default function DepartmentPage() {
         </Button>
       </PageHeader>
 
-      <Card>
+      <Card className="shadow-sm border-slate-200">
         <CardContent className="p-0">
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>รหัส</TableHead>
-                <TableHead>ชื่อฝ่าย</TableHead>
-                <TableHead>Telegram Chat ID</TableHead>
-                <TableHead className="text-right">จัดการ</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {departments.map((d) => (
-                <TableRow key={d.ID}>
-                  <TableCell>{d.code}</TableCell>
-                  <TableCell>{d.name}</TableCell>
-                  <TableCell>{d.telegram_chat_id || "-"}</TableCell>
-                  <TableCell className="text-right">
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      onClick={() => handleOpen(d)}
-                    >
-                      <Edit className="w-4 h-4 text-blue-500" />
-                    </Button>
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      onClick={() => handleDelete(d.ID)}
-                    >
-                      <Trash2 className="w-4 h-4 text-red-500" />
-                    </Button>
-                  </TableCell>
+          <div className="overflow-x-auto">
+            <Table>
+              <TableHeader className="bg-slate-50">
+                <TableRow>
+                  <TableHead>รหัส</TableHead>
+                  <TableHead>ชื่อฝ่าย</TableHead>
+                  <TableHead>Telegram Chat ID</TableHead>
+                  <TableHead className="text-right">จัดการ</TableHead>
                 </TableRow>
-              ))}
-            </TableBody>
-          </Table>
+              </TableHeader>
+              <TableBody>
+                {departments.map((d) => (
+                  <TableRow key={d.ID}>
+                    <TableCell>{d.code}</TableCell>
+                    <TableCell>{d.name}</TableCell>
+                    <TableCell>{d.telegram_chat_id || "-"}</TableCell>
+                    <TableCell className="text-right">
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        onClick={() => handleOpen(d)}
+                      >
+                        <Edit className="w-4 h-4 text-blue-500" />
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        onClick={() => handleDelete(d.ID)}
+                      >
+                        <Trash2 className="w-4 h-4 text-red-500" />
+                      </Button>
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </div>
         </CardContent>
       </Card>
 
@@ -141,6 +144,10 @@ export default function DepartmentPage() {
             <DialogTitle>
               {editId ? "แก้ไขข้อมูลฝ่าย" : "เพิ่มฝ่ายใหม่"}
             </DialogTitle>
+            <DialogDescription>
+              กรอกข้อมูลชื่อและรหัสของฝ่ายงานต่างๆ เพื่อ
+              {editId ? "ปรับปรุงข้อมูล" : "เพิ่มฝ่ายใหม่"}เข้าสู่ระบบ
+            </DialogDescription>
           </DialogHeader>
           <form onSubmit={handleSave} className="space-y-4 pt-4">
             <div className="space-y-2">

@@ -83,14 +83,14 @@ export default function EditDocumentPage({ params }: { params: Promise<{ id: str
     <div className="max-w-3xl mx-auto pb-20">
       <div className="flex items-center gap-3 mb-6">
         <Button variant="outline" size="icon" onClick={() => router.back()}>
-          <ArrowLeft className="h-4 w-4" />
+          <ArrowLeft className="h-4 w-4 text-theme-main" />
         </Button>
-        <h1 className="text-2xl font-bold text-slate-800">แก้ไขข้อมูลหนังสือ</h1>
+        <h1 className="text-2xl font-bold text-theme-main">แก้ไขข้อมูลหนังสือ</h1>
       </div>
       
       <form onSubmit={handleSubmit}>
         <Card>
-          <CardHeader className="bg-slate-50 border-b">
+          <CardHeader className="bg-slate-50 border-b text-theme-main">
             <CardTitle>อัปเดตรายละเอียด</CardTitle>
           </CardHeader>
           <CardContent className="pt-6 space-y-4">

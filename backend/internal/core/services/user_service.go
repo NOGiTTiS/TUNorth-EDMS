@@ -33,6 +33,7 @@ func (s *userService) UpdateUser(id uint, updateData *domain.User) error {
 	user.Role = updateData.Role
 	user.Position = updateData.Position
 	user.DepartmentID = updateData.DepartmentID
+	user.TelegramChatID = updateData.TelegramChatID
 
 	// เปลี่ยนรหัสผ่านถ้ามีการส่งมาใหม่
 	if updateData.Password != "" {

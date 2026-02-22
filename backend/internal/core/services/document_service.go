@@ -17,19 +17,19 @@ import (
 )
 
 type documentService struct {
-	repo     ports.DocumentRepository
-	userRepo ports.UserRepository
+	repo        ports.DocumentRepository
+	userRepo    ports.UserRepository
 	settingRepo ports.SettingRepository
-	notifier ports.NotificationService
+	notifier    ports.NotificationService
 }
 
 // NewDocumentService สร้าง Service พร้อมเชื่อมต่อ Repository และ Notification
 func NewDocumentService(repo ports.DocumentRepository, userRepo ports.UserRepository, settingRepo ports.SettingRepository, notifier ports.NotificationService) ports.DocumentService {
 	return &documentService{
-		repo:     repo,
-		userRepo: userRepo,
+		repo:        repo,
+		userRepo:    userRepo,
 		settingRepo: settingRepo,
-		notifier: notifier,
+		notifier:    notifier,
 	}
 }
 
@@ -67,11 +67,21 @@ func (s *documentService) UpdateDocumentInfo(id uint, req ports.UpdateDocRequest
 	}
 
 	// อัปเดตฟิลด์อื่นๆ
-	if req.ReceiveNo != "" { doc.ReceiveNo = req.ReceiveNo }
-	if req.DocNo != "" { doc.DocNo = req.DocNo }
-	if req.From != "" { doc.From = req.From }
-	if req.To != "" { doc.To = req.To }
-	if req.Subject != "" { doc.Subject = req.Subject }
+	if req.ReceiveNo != "" {
+		doc.ReceiveNo = req.ReceiveNo
+	}
+	if req.DocNo != "" {
+		doc.DocNo = req.DocNo
+	}
+	if req.From != "" {
+		doc.From = req.From
+	}
+	if req.To != "" {
+		doc.To = req.To
+	}
+	if req.Subject != "" {
+		doc.Subject = req.Subject
+	}
 
 	// บันทึกลง Database
 	return s.repo.Update(doc)
@@ -202,7 +212,33 @@ func (s *documentService) StampAndSign(docID uint, adminID uint, deptIDs []uint,
 
 	doc.FilePath = stampedPath
 	doc.Status = domain.StatusPendingDirector // เปลี่ยนสถานะเป็น รอ ผอ. สั่งการ
-	return s.repo.Update(doc)
+
+	err = s.repo.Update(doc)
+
+	// ==========================================
+	// 1. แจ้งเตือน Telegram -> ผอ. (รอ ผอ. สั่งการ)
+	// ==========================================
+	if s.canSendNotify() {
+		directors, _ := s.userRepo.FindByRole(string(domain.RoleDirector))
+
+		// 1. สร้าง URL ลิงก์ (ป้องกัน Error undefined)
+		frontendURL := os.Getenv("FRONTEND_URL")
+		if frontendURL == "" {
+			frontendURL = "http://localhost:3000"
+		}
+		docLink := fmt.Sprintf("%s/dashboard/documents/%d", frontendURL, doc.ID)
+
+		// 2. วนลูปส่งหา ผอ. ทุกคนที่มี Chat ID
+		for _, dir := range directors {
+			if dir.TelegramChatID != "" {
+				msg := fmt.Sprintf("⚠️ <b>หนังสือเข้าใหม่ (รอสั่งการ)</b> ⚠️\n\n📄 <b>เรื่อง:</b> %s\n🔖 <b>เลขรับ:</b> %s\n👤 <b>จาก:</b> %s\n📌 <b>สถานะ:</b> รอผู้อำนวยการสั่งการ\n\n🔗 <b>เปิดเอกสารได้ที่ลิงก์ด้านล่าง:</b>\n%s",
+					doc.Subject, doc.ReceiveNo, doc.From, docLink)
+				s.notifier.SendMessage(dir.TelegramChatID, msg)
+			}
+		}
+	}
+
+	return err
 }
 
 // KasienDocument กระบวนการ ผอ. ลงนามเกษียรหนังสือ
@@ -267,7 +303,7 @@ func (s *documentService) KasienDocument(docID uint, userID uint, req ports.Rout
 		if strings.Contains(req.Action, opt) {
 			pdf.SetXY(boxX+16, currentY-2)
 			pdf.SetFont("prompt", "", 14)
-			pdf.Cell(nil, "/") 
+			pdf.Cell(nil, "/")
 			pdf.SetFont("prompt", "", 11)
 		}
 
@@ -288,11 +324,11 @@ func (s *documentService) KasienDocument(docID uint, userID uint, req ports.Rout
 	padding := 20.0
 	maxWidth := boxWidth - (padding * 2)
 	pdf.SetFont("prompt", "", 10)
-	
+
 	if req.CommandNote != "" {
 		// ตัดคำให้อยู่ในขอบเขตความกว้างของกรอบ
 		lines, _ := pdf.SplitText(req.CommandNote, maxWidth)
-		
+
 		textY := currentY + 5.0
 		for _, line := range lines {
 			// ตรวจสอบไม่ให้พิมพ์ล้นกรอบลงไปทับชื่อ
@@ -301,11 +337,11 @@ func (s *documentService) KasienDocument(docID uint, userID uint, req ports.Rout
 			}
 			pdf.SetXY(boxX+padding, textY)
 			pdf.Cell(nil, line)
-			
+
 			// วาดเส้นจุดไข่ปลามารองรับข้อความ (Optional - เพื่อความสวยงาม)
 			pdf.SetXY(boxX+padding, textY+2)
 			pdf.Cell(nil, "..........................................................................................................")
-			
+
 			textY += 16.0 // ระยะบรรทัด
 		}
 	} else {
@@ -319,7 +355,7 @@ func (s *documentService) KasienDocument(docID uint, userID uint, req ports.Rout
 	// =========================================================
 	// ส่วนลายเซ็นและชื่อตำแหน่ง
 	// =========================================================
-	
+
 	// แปะลายเซ็น ผอ. (Signature Data)
 	if req.SignatureData != "" {
 		rawImgData := strings.Split(req.SignatureData, ",")[1]
@@ -369,8 +405,32 @@ func (s *documentService) KasienDocument(docID uint, userID uint, req ports.Rout
 		IsRead:      true,
 	}
 	s.repo.CreateRoute(&route)
+	err = s.repo.UpdateStatus(doc.ID, domain.StatusDirectorSigned)
 
-	return s.repo.UpdateStatus(doc.ID, domain.StatusDirectorSigned)
+	// ==========================================
+	// 2. แจ้งเตือน Telegram -> ธุรการกลาง
+	// ==========================================
+	if s.canSendNotify() {
+		admins, _ := s.userRepo.FindByRole(string(domain.RoleAdminCentral))
+
+		// 1. สร้าง URL ลิงก์
+		frontendURL := os.Getenv("FRONTEND_URL")
+		if frontendURL == "" {
+			frontendURL = "http://localhost:3000"
+		}
+		docLink := fmt.Sprintf("%s/dashboard/documents/%d", frontendURL, doc.ID)
+
+		// 2. วนลูปส่งหาแอดมินทุกคน
+		for _, admin := range admins {
+			if admin.TelegramChatID != "" {
+				msg := fmt.Sprintf("✅ <b>ผู้อำนวยการสั่งการแล้ว</b> ✅\n\n📄 <b>เรื่อง:</b> %s\n🔖 <b>เลขรับ:</b> %s\n👤 <b>จาก:</b> %s\n📌 <b>สถานะ:</b> รอธุรการแจกจ่าย\n\n🔗 <b>เปิดเอกสารได้ที่ลิงก์ด้านล่าง:</b>\n%s",
+					doc.Subject, doc.ReceiveNo, doc.From, docLink)
+				s.notifier.SendMessage(admin.TelegramChatID, msg)
+			}
+		}
+	}
+
+	return err
 }
 
 // GetAllDocuments ดึงรายการหนังสือทั้งหมด
@@ -406,10 +466,32 @@ func (s *documentService) DistributeDocument(docID uint, adminID uint, deptIDs [
 		}
 		s.repo.CreateRoute(&route)
 
-		// แจ้งเตือนผ่าน Telegram หากมีการตั้งค่า Chat ID ไว้
-		if s.notifier != nil && dept.TelegramChatID != "" {
-			msg := fmt.Sprintf("📢 *มีหนังสือใหม่ถึงฝ่ายท่าน*\n\n📄 เรื่อง: %s\n🔖 เลขรับ: %s", doc.Subject, doc.ReceiveNo)
-			s.notifier.SendMessage(dept.TelegramChatID, msg)
+		// ==========================================
+		// 3. แจ้งเตือน Telegram -> ธุรการฝ่าย
+		// ==========================================
+		// 1. สร้าง URL ลิงก์ไว้ด้านนอกลูป
+		frontendURL := os.Getenv("FRONTEND_URL")
+		if frontendURL == "" {
+			frontendURL = "http://localhost:3000"
+		}
+		docLink := fmt.Sprintf("%s/dashboard/documents/%d", frontendURL, docID)
+
+		for _, dept := range targetDepts {
+			route := domain.DocumentRoute{
+				DocID:          docID,
+				SenderID:       adminID,
+				ReceiverDeptID: &dept.ID,
+				ActionType:     "assigned",
+				IsRead:         false,
+			}
+			s.repo.CreateRoute(&route)
+
+			// 2. ส่งข้อความแบบ HTML
+			if s.canSendNotify() && dept.TelegramChatID != "" {
+				msg := fmt.Sprintf("📢 <b>หนังสือเข้าใหม่ถึงฝ่ายท่าน (%s)</b> 📢\n\n📄 <b>เรื่อง:</b> %s\n🔖 <b>เลขรับ:</b> %s\n👤 <b>จาก:</b> %s\n📌 <b>สถานะ:</b> ส่งต่อธุรการฝ่ายแล้ว\n\n🔗 <b>เปิดเอกสารได้ที่ลิงก์ด้านล่าง:</b>\n%s",
+					dept.Name, doc.Subject, doc.ReceiveNo, doc.From, docLink)
+				s.notifier.SendMessage(dept.TelegramChatID, msg)
+			}
 		}
 	}
 	return s.repo.UpdateStatus(docID, domain.StatusDistributed)
@@ -426,7 +508,7 @@ func (s *documentService) GetNextReceiveNumber() (string, error) {
 	// 2. ดึงหนังสือเล่มล่าสุดจากระบบ (เพื่อดูเลขล่าสุด)
 	// ต้องไปเพิ่ม FindLastDocument ใน Repo ก่อน (ดู Step 1.2)
 	lastDoc, err := s.repo.FindLastDocument()
-	
+
 	// กรณีเพิ่งเริ่มระบบ ยังไม่มีหนังสือเลย
 	if err != nil || lastDoc.ReceiveNo == "" {
 		if format == "yearly" {
@@ -440,7 +522,7 @@ func (s *documentService) GetNextReceiveNumber() (string, error) {
 		// รูปแบบ: X/2569
 		currentThaiYear := time.Now().Year() + 543
 		parts := strings.Split(lastDoc.ReceiveNo, "/")
-		
+
 		// ถ้ามีรูปแบบถูกต้องและปีตรงกัน
 		if len(parts) == 2 {
 			lastNum, _ := strconv.Atoi(parts[0])
@@ -461,7 +543,7 @@ func (s *documentService) GetNextReceiveNumber() (string, error) {
 		lastNum, err := strconv.Atoi(lastDoc.ReceiveNo)
 		if err != nil {
 			// กรณีแปลงไม่ได้ ให้เริ่ม 1 ใหม่ (หรืออาจจะต้องใช้ Regex ดึงตัวเลขถ้าซับซ้อนกว่านี้)
-			return "1", nil 
+			return "1", nil
 		}
 		return strconv.Itoa(lastNum + 1), nil
 	}
@@ -470,13 +552,29 @@ func (s *documentService) GetNextReceiveNumber() (string, error) {
 func (s *documentService) CreateDepartment(req domain.Department) error {
 	return s.repo.CreateDepartment(&req)
 }
+
 func (s *documentService) UpdateDepartment(id uint, req domain.Department) error {
 	dept, err := s.repo.GetDepartmentsByIDs([]uint{id})
-	if err != nil || len(dept) == 0 { return fmt.Errorf("not found") }
-	
+	if err != nil || len(dept) == 0 {
+		return fmt.Errorf("not found")
+	}
+
 	req.ID = id // บังคับ ID เดิม
 	return s.repo.UpdateDepartment(&req)
 }
+
 func (s *documentService) DeleteDepartment(id uint) error {
 	return s.repo.DeleteDepartment(id)
+}
+
+func (s *documentService) canSendNotify() bool {
+	if s.notifier == nil {
+		return false
+	}
+	// เช็ค Global Setting จากหน้า Admin
+	setting, err := s.settingRepo.GetByKey(domain.SetNotifyEnabled)
+	if err == nil && setting.Value == "off" {
+		return false // ถ้าตั้งค่าเป็น off ให้ข้ามการส่งไปเลย
+	}
+	return true
 }

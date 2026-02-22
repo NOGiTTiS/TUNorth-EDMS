@@ -62,8 +62,11 @@ func (r *documentRepo) Update(doc *domain.Document) error {
 }
 
 func (r *documentRepo) Delete(id uint) error {
-	// GORM ทำ Soft Delete (อัปเดต deleted_at) ไม่ได้ลบออกจาก Harddisk จริงๆ
-	return r.db.Delete(&domain.Document{}, id).Error
+	// 1. ลบประวัติการเดินหนังสือ (Routes) ที่เกี่ยวข้องกับหนังสือนั้นออกก่อนแบบถาวร
+	r.db.Unscoped().Where("doc_id = ?", id).Delete(&domain.DocumentRoute{})
+
+	// 2. ลบข้อมูลหนังสือหลักออกด้วยคำสั่ง Unscoped() ซึ่งหมายถึง Hard Delete (ลบถาวรจาก DB)
+	return r.db.Unscoped().Delete(&domain.Document{}, id).Error
 }
 
 func (r *documentRepo) FindLastDocument() (*domain.Document, error) {

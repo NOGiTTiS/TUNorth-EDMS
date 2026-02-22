@@ -22,6 +22,7 @@ type User struct {
 	DepartmentID *uint    `json:"department_id"`   // สังกัดฝ่ายไหน (ถ้ามี)
 	Department   *Department `gorm:"foreignKey:DepartmentID" json:"department,omitempty"`
 	SignaturePath string  `json:"signature_path"`  // Path รูปภาพลายเซ็น (สำหรับแปะใน PDF)
+	TelegramChatID string      `json:"telegram_chat_id"`
 }
 
 type Department struct {

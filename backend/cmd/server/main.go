@@ -25,26 +25,25 @@ func main() {
 	userRepo := repository.NewUserRepository(database.DB)
 	authService := services.NewAuthService(userRepo)
 	authHandler := handler.NewAuthHandler(authService)
-
-	// --- เพิ่ม Notification ---
-	notifyService := notification.NewTelegramService()
-
-	// --- เพิ่ม Document ---
-	docRepo := repository.NewDocumentRepository(database.DB)
-
+	
 	// --- เพิ่ม Settings ---
 	settingRepo := repository.NewSettingRepository(database.DB)
 	settingService := services.NewSettingService(settingRepo)
 	settingHandler := handler.NewSettingHandler(settingService)
 
-	userService := services.NewUserService(userRepo)
-	userHandler := handler.NewUserHandler(userService)
-	
-	// !! แก้ไขบรรทัดนี้ !!
-	// ส่ง 3 arguments: docRepo, userRepo, notifyService
+	// --- เพิ่ม Notification ---
+	notifyService := notification.NewTelegramService(settingRepo) 
+
+	// --- เพิ่ม Document ---
+	docRepo := repository.NewDocumentRepository(database.DB)
 	docService := services.NewDocumentService(docRepo, userRepo, settingRepo, notifyService)
 	docHandler := handler.NewDocumentHandler(docService)
 
+	// --- เพิ่ม User ---
+	userService := services.NewUserService(userRepo)
+	userHandler := handler.NewUserHandler(userService)
+
+	
 	app := fiber.New()
 	app.Use(logger.New())
 	app.Use(cors.New(cors.Config{
