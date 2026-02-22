@@ -14,6 +14,7 @@ import { Textarea } from "@/components/ui/textarea"
 import { Checkbox } from "@/components/ui/checkbox"
 import { Loader2, Trash2, Send, FileCheck } from "lucide-react"
 import { Separator } from "@/components/ui/separator"
+import { PageHeader } from "@/components/dashboard/page-header"
 
 interface Department {
   ID: number
@@ -57,20 +58,20 @@ export default function ReceiveDocumentPage() {
   // เพิ่ม useEffect สำหรับดึงเลข Auto Run
   useEffect(() => {
     const fetchNextNo = async () => {
-        try {
-            const res = await api.get('/api/v1/documents/next-no');
-            if (res.data.next_no) {
-                setFormData(prev => ({
-                    ...prev,
-                    receive_no: res.data.next_no
-                }));
-            }
-        } catch (error) {
-            console.error("Auto-run number failed");
+      try {
+        const res = await api.get("/api/v1/documents/next-no")
+        if (res.data.next_no) {
+          setFormData((prev) => ({
+            ...prev,
+            receive_no: res.data.next_no,
+          }))
         }
-    };
-    fetchNextNo();
-  }, []); // ทำงานครั้งเดียวตอนเปิดหน้า
+      } catch (error) {
+        console.error("Auto-run number failed")
+      }
+    }
+    fetchNextNo()
+  }, []) // ทำงานครั้งเดียวตอนเปิดหน้า
 
   const handleChange = (
     e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>,
@@ -136,39 +137,39 @@ export default function ReceiveDocumentPage() {
       if (error.response) {
         // กรณีที่ Server ตอบกลับมา (เช่น 409, 500)
         if (error.response.status === 409) {
-            // กรณีเลขซ้ำ (409 Conflict) -> แสดง Toast เตือนอย่างเดียว ไม่ต้อง console.error
-            toast.error('ข้อมูลซ้ำ', {
-                description: error.response.data.error || 'เลขทะเบียนรับนี้มีอยู่ในระบบแล้ว'
-            });
+          // กรณีเลขซ้ำ (409 Conflict) -> แสดง Toast เตือนอย่างเดียว ไม่ต้อง console.error
+          toast.error("ข้อมูลซ้ำ", {
+            description:
+              error.response.data.error || "เลขทะเบียนรับนี้มีอยู่ในระบบแล้ว",
+          })
         } else {
-            // กรณี Error อื่นๆ -> ค่อย Log ลง Console
-            console.error("Server Error:", error);
-            toast.error('เกิดข้อผิดพลาดจากระบบ', {
-                description: error.response.data.error || 'กรุณาลองใหม่อีกครั้ง'
-            });
+          // กรณี Error อื่นๆ -> ค่อย Log ลง Console
+          console.error("Server Error:", error)
+          toast.error("เกิดข้อผิดพลาดจากระบบ", {
+            description: error.response.data.error || "กรุณาลองใหม่อีกครั้ง",
+          })
         }
       } else if (error.request) {
         // กรณีส่ง Request ไปแล้วแต่ไม่ได้รับ Response (เน็ตหลุด/Server ดับ)
-        console.error("Network Error:", error);
-        toast.error('ไม่สามารถเชื่อมต่อ Server ได้');
+        console.error("Network Error:", error)
+        toast.error("ไม่สามารถเชื่อมต่อ Server ได้")
       } else {
         // กรณีอื่นๆ
-        console.error("Error:", error);
-        toast.error('เกิดข้อผิดพลาดบางอย่าง');
+        console.error("Error:", error)
+        toast.error("เกิดข้อผิดพลาดบางอย่าง")
       }
     } finally {
-      setIsLoading(false);
+      setIsLoading(false)
     }
   }
 
   return (
     <div className="max-w-5xl mx-auto pb-20">
-      <div className="flex items-center gap-3 mb-6">
-        <FileCheck className="w-8 h-8 text-theme-main" />
-        <h1 className="text-2xl font-bold text-slate-800">
-          ลงทะเบียนรับหนังสือ
-        </h1>
-      </div>
+      <PageHeader
+        title="ลงทะเบียนรับหนังสือ"
+        description="บันทึกข้อมูลหนังสือรับและเสนอผู้บริหารสั่งการ"
+        icon={FileCheck}
+      />
 
       <form
         onSubmit={handleSubmit}

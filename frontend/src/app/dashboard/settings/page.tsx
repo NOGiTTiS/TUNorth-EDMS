@@ -37,6 +37,8 @@ import {
   UploadCloud,
 } from "lucide-react"
 
+import { PageHeader } from "@/components/dashboard/page-header"
+
 export default function SettingsPage() {
   const { user } = useAuthStore()
   const { settings: globalSettings, updateLocalSettings } = useSettingStore()
@@ -124,17 +126,11 @@ export default function SettingsPage() {
 
   return (
     <div className="max-w-5xl mx-auto pb-20">
-      {/* Header */}
-      <div className="flex items-center justify-between mb-6 bg-white p-4 rounded-lg shadow-sm border">
-        <div>
-          {/* ตัวอย่างการใช้ class ธีมไดนามิก (text-theme-main) ที่มาจาก ThemeProvider */}
-          <h1 className="text-2xl font-bold text-theme-main flex items-center gap-2">
-            <Settings className="w-6 h-6" /> ตั้งค่าระบบ (System Settings)
-          </h1>
-          <p className="text-slate-500 text-sm mt-1">
-            จัดการข้อมูลพื้นฐาน ธีม และการแจ้งเตือนของระบบ
-          </p>
-        </div>
+      <PageHeader
+        title="ตั้งค่าระบบ (System Settings)"
+        description="จัดการข้อมูลพื้นฐาน ธีม และการแจ้งเตือนของระบบ"
+        icon={Settings}
+      >
         <Button
           onClick={handleSave}
           disabled={isLoading}
@@ -147,7 +143,7 @@ export default function SettingsPage() {
           )}
           บันทึกการตั้งค่า
         </Button>
-      </div>
+      </PageHeader>
 
       <Tabs defaultValue="general" className="w-full ">
         <TabsList className="grid w-full h-12 grid-cols-5 bg-white border shadow-sm rounded-lg">

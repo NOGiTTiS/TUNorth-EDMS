@@ -25,7 +25,15 @@ import {
 } from "@/components/ui/table"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
-import { FileText, Loader2, PlusCircle, Edit, Trash2 } from "lucide-react"
+import {
+  FileText,
+  Loader2,
+  PlusCircle,
+  Edit,
+  Trash2,
+  LayoutDashboard,
+} from "lucide-react"
+import { PageHeader } from "@/components/dashboard/page-header"
 
 // Type สำหรับข้อมูลหนังสือ (ให้ตรงกับ GORM Backend)
 interface Document {
@@ -146,28 +154,22 @@ export default function DashboardPage() {
 
   return (
     <div className="space-y-6 pb-10 max-w-7xl mx-auto">
-      {/* Header Section */}
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-        <div>
-          <h1 className="text-3xl font-bold tracking-tight text-slate-900 dark:text-slate-100">
-            ภาพรวม (Dashboard)
-          </h1>
-          <p className="text-slate-500 dark:text-slate-400 mt-1">
-            รายการหนังสือเข้าล่าสุด และสถานะการดำเนินการ
-          </p>
-        </div>
-
+      <PageHeader
+        title="ภาพรวม (Dashboard)"
+        description="รายการหนังสือเข้าล่าสุด และสถานะการดำเนินการ"
+        icon={LayoutDashboard}
+      >
         {/* ปุ่มลัดสำหรับ Admin (ธุรการกลาง) */}
         {user?.role === "admin_central" && (
           <Button
-            className="bg-theme-main hover:bg-theme-main shadow-md shadow-theme-main"
+            className="bg-theme-main hover:bg-theme-main shadow-md shadow-theme-main h-12 px-6"
             onClick={() => router.push("/dashboard/receive")}
           >
             <PlusCircle className="mr-2 h-5 w-5" />
             ลงรับหนังสือใหม่
           </Button>
         )}
-      </div>
+      </PageHeader>
 
       {/* Table Section */}
       <Card className="shadow-sm border-slate-200">
