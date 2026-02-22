@@ -433,9 +433,8 @@ func (s *documentService) KasienDocument(docID uint, userID uint, req ports.Rout
 	return err
 }
 
-// GetAllDocuments ดึงรายการหนังสือทั้งหมด
-func (s *documentService) GetAllDocuments() ([]domain.Document, error) {
-	return s.repo.FindAll()
+func (s *documentService) SearchDocuments(query ports.DocumentQuery) (*ports.PaginatedDocument, error) {
+	return s.repo.SearchDocuments(query)
 }
 
 // GetDocumentByID ดึงรายละเอียดหนังสือตาม ID

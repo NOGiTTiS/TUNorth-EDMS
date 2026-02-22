@@ -19,11 +19,46 @@ func (r *documentRepo) Create(doc *domain.Document) error {
 	return r.db.Create(doc).Error
 }
 
-func (r *documentRepo) FindAll() ([]domain.Document, error) {
+func (r *documentRepo) SearchDocuments(q ports.DocumentQuery) (*ports.PaginatedDocument, error) {
 	var docs []domain.Document
-	// ดึงข้อมูลทั้งหมด เรียงจากใหม่ไปเก่า (desc) และ Preload User ที่สร้าง
-	err := r.db.Preload("CreatedBy").Order("created_at desc").Find(&docs).Error
-	return docs, err
+	var total int64
+
+	db := r.db.Model(&domain.Document{})
+
+	// 1. ค้นหาจากข้อความ (เรื่อง, เลขรับ, เลขหนังสือ, จาก)
+	if q.Search != "" {
+		searchTerm := "%" + q.Search + "%"
+		db = db.Where("subject ILIKE ? OR receive_no ILIKE ? OR doc_no ILIKE ? OR \"from\" ILIKE ?", searchTerm, searchTerm, searchTerm, searchTerm)
+	}
+
+	// 2. กรองจาก ปี/เดือน (PostgreSQL ใช้ EXTRACT)
+	if q.Year > 0 {
+		db = db.Where("EXTRACT(YEAR FROM receive_date) = ?", q.Year)
+	}
+	if q.Month > 0 {
+		db = db.Where("EXTRACT(MONTH FROM receive_date) = ?", q.Month)
+	}
+
+	// นับจำนวนทั้งหมดที่ตรงเงื่อนไขก่อน
+	db.Count(&total)
+
+	// 3. แบ่งหน้า (Pagination)
+	if q.Page < 1 { q.Page = 1 }
+	if q.Limit < 1 { q.Limit = 20 }
+	offset := (q.Page - 1) * q.Limit
+
+	// ดึงข้อมูลจริง
+	err := db.Preload("CreatedBy").Order("created_at desc").Limit(q.Limit).Offset(offset).Find(&docs).Error
+
+	// คำนวณจำนวนหน้าทั้งหมด
+	totalPages := int((total + int64(q.Limit) - 1) / int64(q.Limit))
+
+	return &ports.PaginatedDocument{
+		Data:       docs,
+		Total:      total,
+		Page:       q.Page,
+		TotalPages: totalPages,
+	}, err
 }
 
 func (r *documentRepo) FindByID(id uint) (*domain.Document, error) {

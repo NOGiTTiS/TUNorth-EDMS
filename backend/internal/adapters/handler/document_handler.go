@@ -2,6 +2,7 @@ package handler
 
 import (
 	"fmt"
+	"strconv"
 	"strings"
 	"time"
 	"tunorth-edms-backend/internal/core/domain"
@@ -99,14 +100,28 @@ func (h *DocumentHandler) DeleteDocument(c *fiber.Ctx) error {
 }
 
 func (h *DocumentHandler) GetDocuments(c *fiber.Ctx) error {
-	docs, err := h.service.GetAllDocuments()
+	// อ่านค่าจาก URL (?search=...&year=...&month=...&page=...)
+	search := c.Query("search", "")
+	year, _ := strconv.Atoi(c.Query("year", "0"))
+	month, _ := strconv.Atoi(c.Query("month", "0"))
+	page, _ := strconv.Atoi(c.Query("page", "1"))
+	limit, _ := strconv.Atoi(c.Query("limit", "15")) // หน้าละ 15 รายการ
+
+	query := ports.DocumentQuery{
+		Search: search,
+		Year:   year,
+		Month:  month,
+		Page:   page,
+		Limit:  limit,
+	}
+
+	result, err := h.service.SearchDocuments(query)
 	if err != nil {
 		return c.Status(500).JSON(fiber.Map{"error": err.Error()})
 	}
 
-	return c.JSON(fiber.Map{
-		"data": docs,
-	})
+	// ส่งกลับแบบก้อน PaginatedDocument ตรงๆ เลย
+	return c.JSON(result) 
 }
 
 // GET /documents/:id

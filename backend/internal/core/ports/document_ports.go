@@ -5,17 +5,32 @@ import (
 	"tunorth-edms-backend/internal/core/domain"
 )
 
+type DocumentQuery struct {
+	Search string
+	Year   int
+	Month  int
+	Page   int
+	Limit  int
+}
+
+type PaginatedDocument struct {
+	Data       []domain.Document `json:"data"`
+	Total      int64             `json:"total"`
+	Page       int               `json:"page"`
+	TotalPages int               `json:"total_pages"`
+}
+
 type DocumentRepository interface {
 	Create(doc *domain.Document) error
-	FindAll() ([]domain.Document, error)
-	FindByID(id uint) (*domain.Document, error) // เพิ่ม: หาหนังสือตาม ID
+	SearchDocuments(query DocumentQuery) (*PaginatedDocument, error) 
+	FindByID(id uint) (*domain.Document, error)
+	FindLastDocument() (*domain.Document, error)
 	UpdateStatus(id uint, status domain.DocStatus) error // เพิ่ม: อัปเดตสถานะ
 	CreateRoute(route *domain.DocumentRoute) error // เพิ่ม: บันทึกประวัติการส่ง
 	GetAllDepartments() ([]domain.Department, error) // เพิ่ม
     GetDepartmentsByIDs(ids []uint) ([]domain.Department, error)
 	Update(doc *domain.Document) error
 	Delete(id uint) error
-	FindLastDocument() (*domain.Document, error)
 	CreateDepartment(dept *domain.Department) error
 	UpdateDepartment(dept *domain.Department) error
 	DeleteDepartment(id uint) error
@@ -24,13 +39,13 @@ type DocumentRepository interface {
 type DocumentService interface {
 	// รับข้อมูล File Header มาด้วยเพื่อ Save ลง Disk
 	RegisterDocument(doc *domain.Document, file *multipart.FileHeader) error
-	GetAllDocuments() ([]domain.Document, error) 
-	GetDocumentByID(id uint) (*domain.Document, error) // เพิ่ม
+	SearchDocuments(query DocumentQuery) (*PaginatedDocument, error)
+	GetDocumentByID(id uint) (*domain.Document, error)
 	KasienDocument(docID uint, userID uint, req RouteRequest) error
-	GetDepartments() ([]domain.Department, error) // เพิ่ม
+	GetDepartments() ([]domain.Department, error)
     DistributeDocument(docID uint, adminID uint, deptIDs []uint) error
 	StampAndSign(docID uint, adminID uint, deptIDs []uint, signatureData string, noteToDirector string) error 
-	UpdateDocumentInfo(id uint, req UpdateDocRequest) error // เพิ่ม: แก้ไขข้อมูล
+	UpdateDocumentInfo(id uint, req UpdateDocRequest) error
 	DeleteDocument(id uint) error
 	GetNextReceiveNumber() (string, error)
 	CreateDepartment(req domain.Department) error
