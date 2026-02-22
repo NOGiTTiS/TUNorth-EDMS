@@ -28,7 +28,7 @@ export function PageHeader({
           )}
         </div>
       </div>
-      <div className="flex items-center gap-2">{children}</div>
+      <div className="flex items-center gap-2 w-full md:w-auto">{children}</div>
     </div>
   )
 }

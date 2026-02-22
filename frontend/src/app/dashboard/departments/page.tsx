@@ -89,7 +89,7 @@ export default function DepartmentPage() {
       >
         <Button
           onClick={() => handleOpen()}
-          className="bg-theme-main hover:bg-theme-main shadow-md h-12 px-6"
+          className="bg-theme-main hover:bg-theme-main shadow-md h-12 px-6 w-full md:w-auto"
         >
           <PlusCircle className="mr-2 w-5 h-5" /> เพิ่มฝ่ายใหม่
         </Button>

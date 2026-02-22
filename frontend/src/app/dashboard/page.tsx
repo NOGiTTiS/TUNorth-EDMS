@@ -162,7 +162,7 @@ export default function DashboardPage() {
         {/* ปุ่มลัดสำหรับ Admin (ธุรการกลาง) */}
         {user?.role === "admin_central" && (
           <Button
-            className="bg-theme-main hover:bg-theme-main shadow-md shadow-theme-main h-12 px-6"
+            className="bg-theme-main hover:bg-theme-main shadow-md shadow-theme-main h-12 px-6 w-full md:w-auto"
             onClick={() => router.push("/dashboard/receive")}
           >
             <PlusCircle className="mr-2 h-5 w-5" />
@@ -174,7 +174,7 @@ export default function DashboardPage() {
       {/* Table Section */}
       <Card className="shadow-sm border-slate-200">
         <CardHeader className="px-6 py-5 border-b bg-white rounded-t-lg">
-          <CardTitle className="text-lg text-slate-800">
+          <CardTitle className="text-lg text-theme-dark">
             ทะเบียนหนังสือรับ
           </CardTitle>
           <CardDescription>
@@ -228,7 +228,7 @@ export default function DashboardPage() {
 
                       <TableCell className="text-slate-600">
                         {doc.receive_date
-                          ? format(new Date(doc.receive_date), "d MMM bb", {
+                          ? format(new Date(doc.receive_date), "d MMM yyyy", {
                               locale: th,
                             })
                           : "-"}
@@ -246,7 +246,7 @@ export default function DashboardPage() {
                           {doc.CreatedAt
                             ? format(
                                 new Date(doc.CreatedAt),
-                                "d MMM yy HH:mm",
+                                "d MMM yyyy HH:mm",
                                 { locale: th },
                               )
                             : "-"}

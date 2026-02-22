@@ -134,7 +134,7 @@ export default function SettingsPage() {
         <Button
           onClick={handleSave}
           disabled={isLoading}
-          className="bg-theme-main hover:bg-theme-main shadow-md h-12 px-6 text-md"
+          className="bg-theme-main hover:bg-theme-main shadow-md h-12 px-6 text-md w-full md:w-auto"
         >
           {isLoading ? (
             <Loader2 className="w-5 h-5 mr-2 animate-spin" />
@@ -145,37 +145,42 @@ export default function SettingsPage() {
         </Button>
       </PageHeader>
 
-      <Tabs defaultValue="general" className="w-full ">
-        <TabsList className="grid w-full h-12 grid-cols-5 bg-white border shadow-sm rounded-lg">
+      <Tabs defaultValue="general" className="w-full">
+        <TabsList className="flex md:grid w-full h-12 md:grid-cols-5 bg-white border shadow-sm rounded-lg">
           <TabsTrigger
             value="general"
-            className="data-[state=active]:bg-slate-100"
+            className="data-[state=active]:text-theme-main flex-1 shrink-0 px-3 md:px-4"
           >
-            <Settings className="w-4 h-4 mr-2" /> ทั่วไป
+            <Settings className="w-5 h-5 md:w-4 md:h-4 md:mr-2" />
+            <span className="hidden md:inline">ทั่วไป</span>
           </TabsTrigger>
           <TabsTrigger
             value="images"
-            className="data-[state=active]:bg-slate-100"
+            className="data-[state=active]:text-theme-main flex-1 shrink-0 px-3 md:px-4"
           >
-            <ImageIcon className="w-4 h-4 mr-2" /> รูปภาพ
+            <ImageIcon className="w-5 h-5 md:w-4 md:h-4 md:mr-2" />
+            <span className="hidden md:inline">รูปภาพ</span>
           </TabsTrigger>
           <TabsTrigger
             value="theme"
-            className="data-[state=active]:bg-slate-100"
+            className="data-[state=active]:text-theme-main flex-1 shrink-0 px-3 md:px-4"
           >
-            <Palette className="w-4 h-4 mr-2" /> ธีม & UI
+            <Palette className="w-5 h-5 md:w-4 md:h-4 md:mr-2" />
+            <span className="hidden md:inline">ธีม & UI</span>
           </TabsTrigger>
           <TabsTrigger
             value="document"
-            className="data-[state=active]:bg-slate-100"
+            className="data-[state=active]:text-theme-main flex-1 shrink-0 px-3 md:px-4"
           >
-            <FileText className="w-4 h-4 mr-2" /> เอกสาร
+            <FileText className="w-5 h-5 md:w-4 md:h-4 md:mr-2" />
+            <span className="hidden md:inline">เอกสาร</span>
           </TabsTrigger>
           <TabsTrigger
             value="telegram"
-            className="data-[state=active]:bg-slate-100"
+            className="data-[state=active]:text-theme-main flex-1 shrink-0 px-3 md:px-4"
           >
-            <Send className="w-4 h-4 mr-2" /> การแจ้งเตือน
+            <Send className="w-5 h-5 md:w-4 md:h-4 md:mr-2" />
+            <span className="hidden md:inline">การแจ้งเตือน</span>
           </TabsTrigger>
         </TabsList>
 
@@ -183,7 +188,13 @@ export default function SettingsPage() {
         <TabsContent value="general" className="mt-4">
           <Card className="shadow-sm border-slate-200">
             <CardHeader className="bg-slate-50 border-b rounded-t-lg">
-              <CardTitle>ข้อมูลทั่วไปของระบบ</CardTitle>
+              <CardTitle className="flex items-center gap-2 text-theme-main">
+                <Settings className="w-5 h-5" />
+                ข้อมูลทั่วไปของระบบ
+              </CardTitle>
+              <CardDescription>
+                จัดการข้อมูลพื้นฐานของระบบ
+              </CardDescription>
             </CardHeader>
             <CardContent className="space-y-4 pt-6">
               <div className="space-y-2">
@@ -218,7 +229,10 @@ export default function SettingsPage() {
         <TabsContent value="images" className="mt-4">
           <Card className="shadow-sm border-slate-200">
             <CardHeader className="bg-slate-50 border-b rounded-t-lg">
-              <CardTitle>รูปภาพระบบ</CardTitle>
+              <CardTitle className="flex items-center gap-2 text-theme-main">
+                <ImageIcon className="w-5 h-5" />
+                รูปภาพระบบ
+              </CardTitle>
               <CardDescription>
                 อัปโหลดรูปภาพเพื่อนำไปแสดงผลที่หน้าจอ Login และแถบเมนู
               </CardDescription>
@@ -315,7 +329,13 @@ export default function SettingsPage() {
         <TabsContent value="theme" className="mt-4">
           <Card className="shadow-sm border-slate-200">
             <CardHeader className="bg-slate-50 border-b rounded-t-lg">
-              <CardTitle>การปรับแต่งสีและสไตล์ (Theme & UI)</CardTitle>
+              <CardTitle className="flex items-center gap-2 text-theme-main">
+                <Palette className="w-5 h-5" />
+                การปรับแต่งสีและสไตล์ (Theme & UI)
+              </CardTitle>
+              <CardDescription>
+                จัดการสีและสไตล์ของระบบ
+              </CardDescription>
             </CardHeader>
             <CardContent className="space-y-8 pt-6">
               <div className="space-y-3">
@@ -428,7 +448,13 @@ export default function SettingsPage() {
         <TabsContent value="document" className="mt-4">
           <Card className="shadow-sm border-slate-200">
             <CardHeader className="bg-slate-50 border-b rounded-t-lg">
-              <CardTitle>ตั้งค่าการรันเลขเอกสาร</CardTitle>
+              <CardTitle className="flex items-center gap-2 text-theme-main">
+                <FileText className="w-5 h-5" />
+                ตั้งค่าการรันเลขเอกสาร
+              </CardTitle>
+              <CardDescription>
+                จัดการเลขทะเบียนรับของระบบ
+              </CardDescription>
             </CardHeader>
             <CardContent className="space-y-4 pt-6">
               <div className="space-y-2 max-w-md">
@@ -462,10 +488,13 @@ export default function SettingsPage() {
         <TabsContent value="telegram" className="mt-4">
           <Card className="shadow-sm border-slate-200">
             <CardHeader className="bg-slate-50 border-b rounded-t-lg">
-              <CardTitle className="flex items-center gap-2">
-                <Send className="w-5 h-5 text-theme-main" />
+              <CardTitle className="flex items-center gap-2 text-theme-main">
+                <Send className="w-5 h-5" />
                 การตั้งค่า Telegram Bot
               </CardTitle>
+              <CardDescription>
+                จัดการการแจ้งเตือนไปยัง Telegram Bot
+              </CardDescription>
             </CardHeader>
             <CardContent className="space-y-6 pt-6">
               <div className="flex items-center justify-between p-4 bg-white border border-slate-200 rounded-lg shadow-sm">
