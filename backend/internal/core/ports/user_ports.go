@@ -7,9 +7,20 @@ type UserRepository interface {
 	FindByUsername(username string) (*domain.User, error)
 	CreateUser(user *domain.User) error
 	FindByID(id uint) (*domain.User, error)
+	FindAll() ([]domain.User, error)
+	Update(user *domain.User) error
+	Delete(id uint) error
 }
 
 // AuthService: Business Logic ของการ Login
 type AuthService interface {
 	Login(username, password string) (string, error) // Return JWT Token
+}
+
+type UserService interface {
+	GetAllUsers() ([]domain.User, error)
+	CreateUser(user *domain.User) error
+	UpdateUser(id uint, user *domain.User) error
+	DeleteUser(id uint) error
+	UpdateProfile(id uint, fullName, password string) error // สำหรับ Profile
 }

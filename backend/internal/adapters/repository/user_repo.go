@@ -49,3 +49,17 @@ func (r *userRepo) FindByID(id uint) (*domain.User, error) {
 	
 	return &user, nil
 }
+
+func (r *userRepo) FindAll() ([]domain.User, error) {
+	var users []domain.User
+	err := r.db.Preload("Department").Find(&users).Error
+	return users, err
+}
+
+func (r *userRepo) Update(user *domain.User) error {
+	return r.db.Save(user).Error
+}
+
+func (r *userRepo) Delete(id uint) error {
+	return r.db.Delete(&domain.User{}, id).Error
+}

@@ -72,3 +72,13 @@ func (r *documentRepo) FindLastDocument() (*domain.Document, error) {
 	err := r.db.Order("id desc").First(&doc).Error
 	return &doc, err
 }
+
+func (r *documentRepo) CreateDepartment(dept *domain.Department) error {
+	return r.db.Create(dept).Error
+}
+func (r *documentRepo) UpdateDepartment(dept *domain.Department) error {
+	return r.db.Save(dept).Error
+}
+func (r *documentRepo) DeleteDepartment(id uint) error {
+	return r.db.Delete(&domain.Department{}, id).Error
+}

@@ -466,3 +466,17 @@ func (s *documentService) GetNextReceiveNumber() (string, error) {
 		return strconv.Itoa(lastNum + 1), nil
 	}
 }
+
+func (s *documentService) CreateDepartment(req domain.Department) error {
+	return s.repo.CreateDepartment(&req)
+}
+func (s *documentService) UpdateDepartment(id uint, req domain.Department) error {
+	dept, err := s.repo.GetDepartmentsByIDs([]uint{id})
+	if err != nil || len(dept) == 0 { return fmt.Errorf("not found") }
+	
+	req.ID = id // บังคับ ID เดิม
+	return s.repo.UpdateDepartment(&req)
+}
+func (s *documentService) DeleteDepartment(id uint) error {
+	return s.repo.DeleteDepartment(id)
+}

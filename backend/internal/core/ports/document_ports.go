@@ -16,6 +16,9 @@ type DocumentRepository interface {
 	Update(doc *domain.Document) error
 	Delete(id uint) error
 	FindLastDocument() (*domain.Document, error)
+	CreateDepartment(dept *domain.Department) error
+	UpdateDepartment(dept *domain.Department) error
+	DeleteDepartment(id uint) error
 }
 
 type DocumentService interface {
@@ -30,6 +33,9 @@ type DocumentService interface {
 	UpdateDocumentInfo(id uint, req UpdateDocRequest) error // เพิ่ม: แก้ไขข้อมูล
 	DeleteDocument(id uint) error
 	GetNextReceiveNumber() (string, error)
+	CreateDepartment(req domain.Department) error
+	UpdateDepartment(id uint, req domain.Department) error
+	DeleteDepartment(id uint) error
 }
 
 // สร้าง Struct สำหรับรับค่าการแก้ไขข้อมูล

@@ -196,3 +196,24 @@ func (h *DocumentHandler) GetNextNumber(c *fiber.Ctx) error {
 	}
 	return c.JSON(fiber.Map{"next_no": nextNo})
 }
+
+func (h *DocumentHandler) CreateDepartment(c *fiber.Ctx) error {
+	var req domain.Department
+	if err := c.BodyParser(&req); err != nil { return c.Status(400).JSON(fiber.Map{"error": "Invalid input"}) }
+	if err := h.service.CreateDepartment(req); err != nil { return c.Status(500).JSON(fiber.Map{"error": err.Error()}) }
+	return c.JSON(fiber.Map{"message": "เพิ่มฝ่ายสำเร็จ"})
+}
+
+func (h *DocumentHandler) UpdateDepartment(c *fiber.Ctx) error {
+	id, _ := c.ParamsInt("id")
+	var req domain.Department
+	if err := c.BodyParser(&req); err != nil { return c.Status(400).JSON(fiber.Map{"error": "Invalid input"}) }
+	if err := h.service.UpdateDepartment(uint(id), req); err != nil { return c.Status(500).JSON(fiber.Map{"error": err.Error()}) }
+	return c.JSON(fiber.Map{"message": "อัปเดตฝ่ายสำเร็จ"})
+}
+
+func (h *DocumentHandler) DeleteDepartment(c *fiber.Ctx) error {
+	id, _ := c.ParamsInt("id")
+	if err := h.service.DeleteDepartment(uint(id)); err != nil { return c.Status(500).JSON(fiber.Map{"error": err.Error()}) }
+	return c.JSON(fiber.Map{"message": "ลบฝ่ายสำเร็จ"})
+}

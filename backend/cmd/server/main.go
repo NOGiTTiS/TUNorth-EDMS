@@ -36,6 +36,9 @@ func main() {
 	settingRepo := repository.NewSettingRepository(database.DB)
 	settingService := services.NewSettingService(settingRepo)
 	settingHandler := handler.NewSettingHandler(settingService)
+
+	userService := services.NewUserService(userRepo)
+	userHandler := handler.NewUserHandler(userService)
 	
 	// !! แก้ไขบรรทัดนี้ !!
 	// ส่ง 3 arguments: docRepo, userRepo, notifyService
@@ -77,6 +80,17 @@ func main() {
 	// --- Route Department ---
 	v1.Get("/departments", docHandler.GetDepartments)
 	v1.Post("/documents/:id/distribute", docHandler.Distribute)
+	v1.Post("/departments", docHandler.CreateDepartment)
+	v1.Put("/departments/:id", docHandler.UpdateDepartment)
+	v1.Delete("/departments/:id", docHandler.DeleteDepartment)
+
+	// --- Routes สำหรับ User ---
+	v1.Get("/users", userHandler.GetUsers)
+	v1.Post("/users", userHandler.CreateUser)
+	v1.Put("/users/:id", userHandler.UpdateUser)
+	v1.Delete("/users/:id", userHandler.DeleteUser)
+	
+	v1.Put("/profile/:id", userHandler.UpdateProfile)
 
 	// --- Route Settings ---
 	v1.Get("/settings", settingHandler.GetSettings)

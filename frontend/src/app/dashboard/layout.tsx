@@ -12,6 +12,9 @@ import {
   Settings,
   LogOut,
   Menu,
+  UserCircle, 
+  Users, 
+  Network
 } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
@@ -32,10 +35,16 @@ export default function DashboardLayout({
     { name: "ภาพรวม (Dashboard)", icon: LayoutDashboard, href: "/dashboard" },
     { name: "ลงรับหนังสือ", icon: FileInput, href: "/dashboard/receive" },
     { name: "ค้นหาหนังสือ", icon: Search, href: "/dashboard/search" },
-    // ซ่อนเมนูตั้งค่าถ้าไม่ใช่ Admin
-    ...(user.role === "admin_central"
-      ? [{ name: "ตั้งค่าระบบ", icon: Settings, href: "/dashboard/settings" }]
-      : []),
+
+    // ทุกคนเห็นโปรไฟล์
+    { name: 'โปรไฟล์ส่วนตัว', icon: UserCircle, href: '/dashboard/profile' },
+    
+    // เฉพาะ Admin
+    ...(user.role === 'admin_central' ? [
+        { name: 'จัดการฝ่าย', icon: Network, href: '/dashboard/departments' },
+        { name: 'จัดการผู้ใช้', icon: Users, href: '/dashboard/users' },
+        { name: 'ตั้งค่าระบบ', icon: Settings, href: '/dashboard/settings' }
+    ] : []),
   ]
 
   // ฟังก์ชันช่วยจัดการ URL และแก้ปัญหา Path เก่าที่พังจาก Windows (\loads)
