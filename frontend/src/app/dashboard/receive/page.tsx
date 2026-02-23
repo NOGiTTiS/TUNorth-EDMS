@@ -164,7 +164,7 @@ export default function ReceiveDocumentPage() {
   }
 
   return (
-    <div className="max-w-5xl mx-auto pb-20">
+    <div className="space-y-6 max-w-7xl mx-auto pb-10">
       <PageHeader
         title="ลงทะเบียนรับหนังสือ"
         description="บันทึกข้อมูลหนังสือรับและเสนอผู้บริหารสั่งการ"

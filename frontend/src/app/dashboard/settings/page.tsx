@@ -125,7 +125,7 @@ export default function SettingsPage() {
   }
 
   return (
-    <div className="max-w-5xl mx-auto pb-20">
+    <div className="space-y-6 max-w-7xl mx-auto pb-20">
       <PageHeader
         title="ตั้งค่าระบบ (System Settings)"
         description="จัดการข้อมูลพื้นฐาน ธีม และการแจ้งเตือนของระบบ"
@@ -192,9 +192,7 @@ export default function SettingsPage() {
                 <Settings className="w-5 h-5" />
                 ข้อมูลทั่วไปของระบบ
               </CardTitle>
-              <CardDescription>
-                จัดการข้อมูลพื้นฐานของระบบ
-              </CardDescription>
+              <CardDescription>จัดการข้อมูลพื้นฐานของระบบ</CardDescription>
             </CardHeader>
             <CardContent className="space-y-4 pt-6">
               <div className="space-y-2">
@@ -333,9 +331,7 @@ export default function SettingsPage() {
                 <Palette className="w-5 h-5" />
                 การปรับแต่งสีและสไตล์ (Theme & UI)
               </CardTitle>
-              <CardDescription>
-                จัดการสีและสไตล์ของระบบ
-              </CardDescription>
+              <CardDescription>จัดการสีและสไตล์ของระบบ</CardDescription>
             </CardHeader>
             <CardContent className="space-y-8 pt-6">
               <div className="space-y-3">
@@ -452,9 +448,7 @@ export default function SettingsPage() {
                 <FileText className="w-5 h-5" />
                 ตั้งค่าการรันเลขเอกสาร
               </CardTitle>
-              <CardDescription>
-                จัดการเลขทะเบียนรับของระบบ
-              </CardDescription>
+              <CardDescription>จัดการเลขทะเบียนรับของระบบ</CardDescription>
             </CardHeader>
             <CardContent className="space-y-4 pt-6">
               <div className="space-y-2 max-w-md">

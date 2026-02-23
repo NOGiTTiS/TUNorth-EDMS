@@ -191,7 +191,7 @@ export default function DashboardPage() {
       >
         {user?.role === "admin_central" && (
           <Button
-            className="bg-theme-main hover:bg-theme-main shadow-md h-12 px-6"
+            className="bg-theme-main hover:bg-theme-main shadow-md h-12 px-6 w-full md:w-auto"
             onClick={() => router.push("/dashboard/receive")}
           >
             <PlusCircle className="mr-2 h-5 w-5" />

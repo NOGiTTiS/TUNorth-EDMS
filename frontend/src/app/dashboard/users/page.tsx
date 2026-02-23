@@ -32,6 +32,7 @@ import {
 } from "@/components/ui/select"
 import { Badge } from "@/components/ui/badge"
 import { Edit, Trash2, PlusCircle, Users, Loader2 } from "lucide-react"
+import { PageHeader } from "@/components/dashboard/page-header"
 
 interface Department {
   ID: number
@@ -176,23 +177,19 @@ export default function UserPage() {
   }
 
   return (
-    <div className="space-y-4 max-w-6xl mx-auto pb-10">
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-        <div>
-          <h1 className="text-2xl font-bold flex items-center gap-2 text-theme-main">
-            <Users className="w-6 h-6" /> จัดการข้อมูลผู้ใช้งาน
-          </h1>
-          <p className="text-slate-500 text-sm mt-1">
-            เพิ่ม/ลบ/แก้ไข บัญชีผู้ใช้ในระบบทั้งหมด
-          </p>
-        </div>
+    <div className="space-y-6 pb-10 max-w-7xl mx-auto">
+      <PageHeader
+        title="จัดการข้อมูลผู้ใช้งาน"
+        description="เพิ่ม/ลบ/แก้ไข บัญชีผู้ใช้ในระบบทั้งหมด"
+        icon={Users}
+      >
         <Button
           onClick={() => handleOpen()}
-          className="bg-theme-main hover:bg-theme-main shadow-md"
+          className="bg-theme-main hover:bg-theme-main shadow-md h-12 px-6 w-full md:w-auto"
         >
-          <PlusCircle className="mr-2 w-4 h-4" /> เพิ่มผู้ใช้ใหม่
+          <PlusCircle className="mr-2 h-5 w-5" /> เพิ่มผู้ใช้ใหม่
         </Button>
-      </div>
+      </PageHeader>
 
       <Card className="shadow-sm border-slate-200">
         <CardContent className="p-0">

@@ -17,7 +17,7 @@ import {
   UserCircle,
   Users,
   Network,
-  BookOpen
+  BookOpen,
 } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
@@ -42,7 +42,7 @@ export default function DashboardLayout({
 
   const menuItems = [
     { name: "ภาพรวม (Dashboard)", icon: LayoutDashboard, href: "/dashboard" },
-    { name: 'ทะเบียนหนังสือ', icon: BookOpen, href: '/dashboard/documents' },
+    { name: "ทะเบียนหนังสือ", icon: BookOpen, href: "/dashboard/documents" },
     { name: "โปรไฟล์ส่วนตัว", icon: UserCircle, href: "/dashboard/profile" },
 
     // เฉพาะ Admin
@@ -158,7 +158,7 @@ export default function DashboardLayout({
   )
 
   return (
-    <div className="flex h-screen bg-slate-50 dark:bg-slate-900 relative">
+    <div className="flex h-screen bg-slate-50 dark:bg-slate-900 relative overflow-hidden">
       {/* Mobile Sidebar Overlay */}
       {isMenuOpen && (
         <div

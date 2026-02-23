@@ -50,7 +50,7 @@ export default function ProfilePage() {
   }
 
   return (
-    <div className="max-w-2xl mx-auto pt-10 pb-20">
+    <div className="space-y-6 max-w-7xl mx-auto pt-10 pb-20">
       <PageHeader
         title="โปรไฟล์ส่วนตัว"
         description="จัดการข้อมูลส่วนตัวและรหัสผ่านของคุณ"

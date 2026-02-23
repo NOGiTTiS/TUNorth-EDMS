@@ -82,7 +82,7 @@ export default function DepartmentPage() {
   }
 
   return (
-    <div className="space-y-4 max-w-6xl mx-auto pb-10">
+    <div className="space-y-6 max-w-7xl mx-auto pb-10">
       <PageHeader
         title="จัดการข้อมูลฝ่าย"
         description="ตั้งค่าข้อมูลฝ่ายและกลุ่มงานภายในโรงเรียน"
