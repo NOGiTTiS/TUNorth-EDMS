@@ -75,13 +75,15 @@ func main() {
 	v1.Get("/documents/:id", docHandler.GetDocument)
 	v1.Put("/documents/:id", docHandler.UpdateDocument)
 	v1.Delete("/documents/:id", docHandler.DeleteDocument)
-	
 	v1.Post("/documents/:id/route", docHandler.RouteDocument)
 	v1.Post("/documents/:id/stamp", docHandler.StampDocument)
 	v1.Post("/documents/:id/distribute", docHandler.Distribute)
-	
+	v1.Post("/documents/:id/forward-head", docHandler.ForwardToHead)
+	v1.Post("/documents/:id/forward-deputy", docHandler.ForwardToDeputy)
+	v1.Post("/documents/:id/deputy-sign", docHandler.DeputySign)
+	v1.Post("/documents/:id/complete", docHandler.CompleteDocument)
+
 	// --- Route Department ---
-	v1.Post("/documents/:id/distribute", docHandler.Distribute)
 	v1.Post("/departments", docHandler.CreateDepartment)
 	v1.Put("/departments/:id", docHandler.UpdateDepartment)
 	v1.Delete("/departments/:id", docHandler.DeleteDepartment)
@@ -91,7 +93,6 @@ func main() {
 	v1.Post("/users", userHandler.CreateUser)
 	v1.Put("/users/:id", userHandler.UpdateUser)
 	v1.Delete("/users/:id", userHandler.DeleteUser)
-	
 	v1.Put("/profile/:id", userHandler.UpdateProfile)
 
 	// --- Route Settings ---

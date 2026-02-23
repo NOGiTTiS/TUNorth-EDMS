@@ -11,6 +11,7 @@ type UserRepository interface {
 	Update(user *domain.User) error
 	Delete(id uint) error
 	FindByRole(role string) ([]domain.User, error)
+	FindByDeptAndRole(deptID uint, role string) ([]domain.User, error)
 }
 
 // AuthService: Business Logic ของการ Login
@@ -19,7 +20,7 @@ type AuthService interface {
 }
 
 type UserService interface {
-	GetAllUsers() ([]domain.User, error)
+	GetAllUsers(role string, deptID uint) ([]domain.User, error) 
 	CreateUser(user *domain.User) error
 	UpdateUser(id uint, user *domain.User) error
 	DeleteUser(id uint) error

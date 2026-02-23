@@ -131,7 +131,7 @@ export default function ReceiveDocumentPage() {
       })
 
       toast.success("ลงรับหนังสือและประทับตราสำเร็จ")
-      router.push("/dashboard")
+      router.push("/dashboard/documents")
     } catch (error: any) {
       // เช็คว่า Error มาจาก Response ของ Server หรือไม่
       if (error.response) {

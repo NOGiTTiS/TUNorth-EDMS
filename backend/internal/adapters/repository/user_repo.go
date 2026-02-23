@@ -69,3 +69,9 @@ func (r *userRepo) FindByRole(role string) ([]domain.User, error) {
 	err := r.db.Where("role = ?", role).Find(&users).Error
 	return users, err
 }
+
+func (r *userRepo) FindByDeptAndRole(deptID uint, role string) ([]domain.User, error) {
+	var users []domain.User
+	err := r.db.Where("department_id = ? AND role = ?", deptID, role).Find(&users).Error
+	return users, err
+}

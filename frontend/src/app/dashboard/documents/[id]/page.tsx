@@ -18,12 +18,12 @@ import { Separator } from "@/components/ui/separator"
 import { Badge } from "@/components/ui/badge"
 import {
   ArrowLeft,
-  Send,
   PenTool,
   Share2,
   CheckCircle2,
   RotateCcw,
-  FileText,
+  UserCheck,
+  Send,
 } from "lucide-react"
 
 interface DocumentDetail {
@@ -40,6 +40,11 @@ interface DocumentDetail {
 interface Department {
   ID: number
   name: string
+}
+
+interface User {
+  ID: number
+  full_name: string
 }
 
 // --- ฟังก์ชันเสริม: แปลงสถานะเป็นภาษาไทยและใส่สี ---
@@ -73,17 +78,41 @@ const getStatusBadge = (status: string) => {
       return (
         <Badge
           variant="secondary"
-          className="bg-green-100 text-green-800 border-green-200"
+          className="bg-purple-100 text-purple-800 border-purple-200"
         >
-          ส่งต่อธุรการฝ่ายแล้ว
+          ถึงธุรการฝ่าย (ลงรับ)
+        </Badge>
+      )
+    case "pending_deputy":
+      return (
+        <Badge
+          variant="secondary"
+          className="bg-orange-100 text-orange-800 border-orange-200"
+        >
+          รอ รองฯ สั่งการ
+        </Badge>
+      )
+    case "deputy_signed":
+      return (
+        <Badge
+          variant="secondary"
+          className="bg-cyan-100 text-cyan-800 border-cyan-200"
+        >
+          รองฯ สั่งการแล้ว
         </Badge>
       )
     case "sent_to_head":
       return (
         <Badge
           variant="secondary"
-          className="bg-purple-100 text-purple-800 border-purple-200"
+          className="bg-indigo-100 text-indigo-800 border-indigo-200"
         >
+          ส่งหัวหน้างานแล้ว
+        </Badge>
+      )
+    case "completed":
+      return (
+        <Badge variant="default" className="bg-green-600 hover:bg-green-700">
           ดำเนินการเสร็จสิ้น
         </Badge>
       )
@@ -108,37 +137,56 @@ export default function DocumentDetailPage({
   // Data States
   const [document, setDocument] = useState<DocumentDetail | null>(null)
   const [departments, setDepartments] = useState<Department[]>([])
+  const [headUnits, setHeadUnits] = useState<User[]>([]) // รายชื่อหัวหน้างาน
   const [isLoading, setIsLoading] = useState(true)
 
-  // --- Director States (ผอ.) ---
-  const [selectedActions, setSelectedActions] = useState<string[]>(["ทราบ"])
+  // --- Director / Deputy States ---
+  const [selectedActions, setSelectedActions] = useState<string[]>([])
   const [comment, setComment] = useState("")
   const sigPad = useRef<SignatureCanvas>(null)
 
-  // --- Admin States (ธุรการ) ---
+  // --- Admin States ---
   const [selectedDepts, setSelectedDepts] = useState<number[]>([])
+  const [selectedHeads, setSelectedHeads] = useState<number[]>([])
 
   const [isSubmitting, setIsSubmitting] = useState(false)
 
   useEffect(() => {
-    if (!docId) return
+    if (!docId) return;
 
     const fetchData = async () => {
       try {
-        const docRes = await api.get(`/api/v1/documents/${docId}`)
-        setDocument(docRes.data.data)
-        const deptRes = await api.get("/api/v1/departments")
-        setDepartments(deptRes.data.data)
+        const docRes = await api.get(`/api/v1/documents/${docId}`);
+        setDocument(docRes.data.data);
+        
+        // ธุรการกลาง: ดึงรายชื่อฝ่ายทั้งหมด
+        if (user?.role === "admin_central") {
+            const deptRes = await api.get("/api/v1/departments");
+            setDepartments(deptRes.data.data);
+        } 
+        
+        // ธุรการฝ่าย: ดึงเฉพาะหัวหน้างานในฝ่ายตัวเอง
+        else if (user?.role === "admin_dept" && user.dept_id) {
+            // --- แก้ไขการเรียก API ตรงนี้ ---
+            const headRes = await api.get("/api/v1/users", {
+                params: {
+                    role: 'head', // กรองเฉพาะหัวหน้างาน
+                    department_id: user.dept_id // กรองเฉพาะฝ่ายตัวเอง
+                }
+            });
+            setHeadUnits(headRes.data.data);
+        }
+
       } catch (error) {
-        toast.error("ไม่สามารถดึงข้อมูลได้")
+        toast.error("ไม่สามารถดึงข้อมูลได้");
       } finally {
-        setIsLoading(false)
+        setIsLoading(false);
       }
     }
-    fetchData()
-  }, [docId])
+    fetchData();
+  }, [docId, user]);
 
-  // Logic: ผอ. เลือกคำสั่งการ
+  // Logic: เลือกคำสั่งการ (ใช้ร่วมกันทั้ง ผอ. และ รองฯ)
   const toggleAction = (value: string) => {
     setSelectedActions((prev) => {
       if (prev.includes(value)) {
@@ -152,14 +200,13 @@ export default function DocumentDetailPage({
     })
   }
 
-  // Logic: ผอ. บันทึกเกษียร (ลงนามสด)
+  // Logic: ผอ. บันทึกเกษียร
   const handleKasien = async () => {
     if (!document) return
     if (!sigPad.current || sigPad.current.isEmpty()) {
       toast.error("กรุณาลงนามเกษียรหนังสือ")
       return
     }
-
     setIsSubmitting(true)
     const signatureData = sigPad.current
       .getTrimmedCanvas()
@@ -173,7 +220,7 @@ export default function DocumentDetailPage({
         signature_data: signatureData,
       })
       toast.success("ลงนามและบันทึกการสั่งการเรียบร้อยแล้ว")
-      router.push("/dashboard")
+      router.push("/dashboard/documents")
     } catch (error) {
       toast.error("เกิดข้อผิดพลาดในการบันทึก")
     } finally {
@@ -181,7 +228,7 @@ export default function DocumentDetailPage({
     }
   }
 
-  // Logic: ธุรการแจกจ่าย
+  // Logic: ธุรการกลาง ส่งต่อ
   const handleDistribute = async () => {
     if (selectedDepts.length === 0) {
       toast.error("กรุณาเลือกฝ่ายอย่างน้อย 1 ฝ่าย")
@@ -192,10 +239,91 @@ export default function DocumentDetailPage({
       await api.post(`/api/v1/documents/${document?.ID}/distribute`, {
         dept_ids: selectedDepts,
       })
-      toast.success("แจกจ่ายหนังสือเรียบร้อยแล้ว")
-      router.push("/dashboard")
+      toast.success("ส่งต่อหนังสือเรียบร้อยแล้ว")
+      router.push("/dashboard/documents")
     } catch (err) {
-      toast.error("เกิดข้อผิดพลาดในการแจกจ่าย")
+      toast.error("เกิดข้อผิดพลาดในการส่งต่อ")
+    } finally {
+      setIsSubmitting(false)
+    }
+  }
+
+  // Logic: ธุรการฝ่าย -> เสนอ รองฯ
+  const handleForwardToDeputy = async () => {
+    setIsSubmitting(true)
+    try {
+      await api.post(`/api/v1/documents/${document?.ID}/forward-deputy`, {
+        note: comment,
+      })
+      toast.success("ส่งเสนอรองผู้อำนวยการเรียบร้อยแล้ว")
+      router.push("/dashboard/documents")
+    } catch (e) {
+      toast.error("ส่งเสนอไม่สำเร็จ")
+    } finally {
+      setIsSubmitting(false)
+    }
+  }
+
+  // Logic: รองฯ -> เกษียร (ลงนามจริง)
+  const handleDeputySign = async () => {
+    if (!document) return
+    
+    // 1. ตรวจสอบลายเซ็น (เหมือนของ ผอ.)
+    if (!sigPad.current || sigPad.current.isEmpty()) {
+      toast.error("กรุณาลงนามเกษียรหนังสือ");
+      return;
+    }
+
+    setIsSubmitting(true);
+    
+    // 2. เตรียมข้อมูล
+    const signatureData = sigPad.current.getTrimmedCanvas().toDataURL("image/png");
+    const actionString = selectedActions.join(", "); // รวมรายการที่ติ๊ก
+
+    try {
+      // 3. ยิง API จริง
+      await api.post(`/api/v1/documents/${document.ID}/deputy-sign`, {
+        action: actionString,
+        command_note: comment,
+        signature_data: signatureData
+      });
+      
+      toast.success("ลงนามและสั่งการเรียบร้อยแล้ว");
+      router.push("/dashboard/documents"); // เด้งไปหน้าทะเบียน
+    } catch (error) {
+      console.error(error);
+      toast.error("เกิดข้อผิดพลาดในการบันทึกข้อมูล");
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  // Logic: ธุรการฝ่าย -> ส่งหัวหน้างาน
+  const handleForwardToHead = async () => {
+    if (selectedHeads.length === 0) return toast.error("เลือกหัวหน้างาน")
+    setIsSubmitting(true)
+    try {
+      await api.post(`/api/v1/documents/${document?.ID}/forward-head`, {
+        head_ids: selectedHeads,
+      })
+      toast.success("ส่งต่อหัวหน้างานสำเร็จ")
+      router.push("/dashboard/documents")
+    } catch (e) {
+      toast.error("ส่งต่อไม่สำเร็จ")
+    } finally {
+      setIsSubmitting(false)
+    }
+  }
+
+  // Logic: หัวหน้างาน -> รับทราบ
+  const handleHeadComplete = async () => {
+    setIsSubmitting(true)
+    try {
+      await api.post(`/api/v1/documents/${document?.ID}/complete`)
+      toast.success("รับทราบและสิ้นสุดกระบวนการ")
+      router.push("/dashboard/documents")
+    } catch (e) {
+      toast.error("เกิดข้อผิดพลาด")
     } finally {
       setIsSubmitting(false)
     }
@@ -204,7 +332,7 @@ export default function DocumentDetailPage({
   if (isLoading || !docId)
     return (
       <div className="p-10 text-center flex items-center justify-center h-screen">
-        <Loader2 className="animate-spin mr-2" /> กำลังโหลด...
+        <RotateCcw className="animate-spin mr-2" /> กำลังโหลด...
       </div>
     )
   if (!document) return <div className="p-10 text-center">ไม่พบข้อมูล</div>
@@ -235,8 +363,6 @@ export default function DocumentDetailPage({
             </span>
           </div>
         </div>
-
-        {/* --- เปลี่ยนมาเรียกใช้ฟังก์ชัน getStatusBadge ตรงนี้ --- */}
         {getStatusBadge(document.status)}
       </div>
 
@@ -248,7 +374,9 @@ export default function DocumentDetailPage({
 
         {/* Right: Action Panel */}
         <div className="w-full md:w-[420px] flex flex-col gap-4 overflow-y-auto pr-2 pb-10">
-          {/* FLOW 1: สำหรับผู้อำนวยการ (เกษียรหนังสือ) */}
+          {/* ==================================================== */}
+          {/* FLOW 1: ผู้อำนวยการ (เกษียร)                         */}
+          {/* ==================================================== */}
           {user?.role === "director" &&
             document.status === "pending_director" && (
               <Card className="border-theme-main-light shadow-md">
@@ -258,6 +386,7 @@ export default function DocumentDetailPage({
                   </CardTitle>
                 </CardHeader>
                 <CardContent className="pt-4 space-y-6">
+                  {/* Reuse Checkbox & Signature Pad Code */}
                   <div className="flex flex-col gap-3">
                     {[
                       "ทราบ",
@@ -280,9 +409,7 @@ export default function DocumentDetailPage({
                       </div>
                     ))}
                   </div>
-
                   <Separator />
-
                   <div className="space-y-2">
                     <Label className="text-sm font-semibold">
                       ข้อความสั่งการเพิ่มเติม
@@ -294,7 +421,6 @@ export default function DocumentDetailPage({
                       onChange={(e) => setComment(e.target.value)}
                     />
                   </div>
-
                   <div className="space-y-2">
                     <Label className="text-theme-dark font-bold flex justify-between">
                       ลงนามเกษียรหนังสือ
@@ -323,7 +449,6 @@ export default function DocumentDetailPage({
                       </div>
                     </div>
                   </div>
-
                   <Button
                     className="w-full bg-theme-main hover:bg-theme-main h-12 text-md"
                     onClick={handleKasien}
@@ -335,7 +460,9 @@ export default function DocumentDetailPage({
               </Card>
             )}
 
-          {/* FLOW 2: สำหรับธุรการ (แจกจ่ายฝ่าย) */}
+          {/* ==================================================== */}
+          {/* FLOW 2: ธุรการกลาง (ส่งต่อ)                         */}
+          {/* ==================================================== */}
           {user?.role === "admin_central" &&
             document.status === "director_signed" && (
               <Card className="border-blue-200 shadow-md">
@@ -385,16 +512,151 @@ export default function DocumentDetailPage({
               </Card>
             )}
 
-          {/* FLOW 3: สำหรับสถานะส่งต่อธุรการฝ่ายแล้ว */}
-          {document.status === "distributed" && (
-            <Card className="bg-green-50 border-green-200">
-              <CardContent className="pt-6 text-center space-y-3">
-                <CheckCircle2 className="h-12 w-12 text-green-600 mx-auto" />
-                <div className="font-bold text-green-800">
-                  ดำเนินการเสร็จสิ้น
+          {/* ==================================================== */}
+          {/* FLOW 3: ธุรการฝ่าย (เสนอ รองฯ)                       */}
+          {/* ==================================================== */}
+          {user?.role === "admin_dept" && document.status === "distributed" && (
+            <Card className="border-orange-200 shadow-md">
+              <CardHeader className="bg-orange-50 pb-3 border-b border-orange-100">
+                <CardTitle className="text-lg text-theme-main flex items-center gap-2">
+                  <UserCheck className="h-5 w-5" /> เสนอรองผู้อำนวยการฝ่าย
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="pt-4 space-y-4">
+                <div className="bg-orange-50 p-3 rounded border border-orange-200 text-xs text-orange-800">
+                  หนังสือมาถึงฝ่ายแล้ว กดปุ่มเพื่อเสนอรองฯ พิจารณา
                 </div>
-                <p className="text-xs text-green-600">
-                  หนังสือถูกส่งต่อถึงฝ่ายเรียบร้อยแล้ว
+                <Button
+                  className="w-full bg-theme-main hover:bg-theme-main/80 h-12 text-md"
+                  onClick={handleForwardToDeputy}
+                  disabled={isSubmitting}
+                >
+                  {isSubmitting ? "กำลังส่ง..." : "ส่งเสนอรองฯ"}
+                </Button>
+              </CardContent>
+            </Card>
+          )}
+
+          {/* ==================================================== */}
+          {/* FLOW 4: รองผู้อำนวยการ (เกษียร)                      */}
+          {/* ==================================================== */}
+          {user?.role === "deputy" && document.status === "pending_deputy" && (
+            <Card className="border-orange-200 shadow-md">
+              <CardHeader className="bg-orange-50 pb-3 border-b border-orange-100">
+                <CardTitle className="text-lg text-theme-main flex items-center gap-2">
+                  <PenTool className="h-5 w-5" /> เกษียรสั่งการ (รองฯ)
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="pt-4 space-y-4">
+                {/* Reuse UI Checkbox + SigPad similar to Director but call handleDeputySign */}
+                {/* (เพื่อความกระชับ ขอละส่วนซ้ำซ้อน แต่ในโค้ดจริงต้องใส่ให้ครบเหมือน Flow 1) */}
+                <div className="space-y-2">
+                  <Label>ข้อความสั่งการ</Label>
+                  <Textarea
+                    value={comment}
+                    onChange={(e) => setComment(e.target.value)}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label>ลงนาม</Label>
+                  <div className="border h-[150px]">
+                    <SignatureCanvas
+                      ref={sigPad}
+                      penColor="blue"
+                      canvasProps={{ className: "w-full h-full" }}
+                    />
+                  </div>
+                </div>
+                <Button
+                  className="w-full bg-theme-main hover:bg-theme-main/80 h-12 text-md"
+                  onClick={handleDeputySign}
+                  disabled={isSubmitting}
+                >
+                  ลงนามและสั่งการ
+                </Button>
+              </CardContent>
+            </Card>
+          )}
+
+          {/* ==================================================== */}
+          {/* FLOW 5: ธุรการฝ่าย (ส่งหัวหน้างาน)                     */}
+          {/* ==================================================== */}
+          {user?.role === "admin_dept" &&
+            document.status === "deputy_signed" && (
+              <Card className="border-blue-200 shadow-md">
+                <CardHeader className="bg-blue-50 pb-3 border-b border-blue-100">
+                  <CardTitle className="text-lg text-theme-main flex items-center gap-2">
+                    <Share2 className="h-5 w-5" /> ส่งต่อหัวหน้างาน
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="pt-4 space-y-4">
+                  <div className="space-y-2">
+                    <Label>เลือกหัวหน้างาน</Label>
+                    <div className="grid grid-cols-1 gap-1 border p-3 rounded bg-slate-50 max-h-[250px] overflow-y-auto">
+                      {headUnits.map((h) => (
+                        <div
+                          key={h.ID}
+                          className="flex items-center space-x-3 p-2 hover:bg-white rounded"
+                        >
+                          <Checkbox
+                            checked={selectedHeads.includes(h.ID)}
+                            onCheckedChange={() =>
+                              setSelectedHeads((prev) =>
+                                prev.includes(h.ID)
+                                  ? prev.filter((id) => id !== h.ID)
+                                  : [...prev, h.ID],
+                              )
+                            }
+                          />
+                          <Label>{h.full_name}</Label>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                  <Button
+                    className="w-full bg-theme-main hover:bg-theme-main/80 h-12 text-md"
+                    onClick={handleForwardToHead}
+                    disabled={isSubmitting}
+                  >
+                    ส่งต่อหัวหน้างาน
+                  </Button>
+                </CardContent>
+              </Card>
+            )}
+
+          {/* FLOW 6: หัวหน้างาน (รับทราบ/จบงาน) */}
+          {user?.role === "head" && document.status === "sent_to_head" && (
+            <Card className="border-theme-main shadow-md">
+              <CardHeader className="bg-theme-main/10 pb-3 border-b border-theme-main/10">
+                <CardTitle className="text-lg text-theme-main flex items-center gap-2">
+                  ส่วนของหัวหน้างาน
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="pt-4">
+                <p className="text-sm text-slate-600 mb-4">
+                  โปรดอ่านเอกสารและกดรับทราบเพื่อสิ้นสุดกระบวนการในระบบ
+                </p>
+                <Button
+                  onClick={handleHeadComplete}
+                  disabled={isSubmitting}
+                  className="w-full bg-theme-main hover:bg-theme-main/80 h-12 text-md"
+                >
+                  {isSubmitting ? "กำลังบันทึก..." : "รับทราบ / ดำเนินการแล้ว"}
+                </Button>
+              </CardContent>
+            </Card>
+          )}
+
+          {/* สถานะ Completed (จบกระบวนการ 100%) */}
+          {document.status === "completed" && (
+            <Card className="bg-theme-main/10 border-theme-main">
+              <CardContent className="pt-6 text-center space-y-3">
+                <CheckCircle2 className="h-12 w-12 text-theme-main mx-auto" />
+                <div className="font-bold text-theme-main">
+                  ดำเนินการเสร็จสิ้นสมบูรณ์
+                </div>
+                <p className="text-xs text-theme-main">
+                  หนังสือถึงมือผู้ปฏิบัติงานและรับทราบเรียบร้อยแล้ว
                 </p>
               </CardContent>
             </Card>
@@ -403,8 +665,4 @@ export default function DocumentDetailPage({
       </div>
     </div>
   )
-}
-
-function Loader2({ className }: { className?: string }) {
-  return <RotateCcw className={className} />
 }

@@ -1,6 +1,7 @@
 package handler
 
 import (
+	"strconv"
 	"strings"
 	"tunorth-edms-backend/internal/core/domain"
 	"tunorth-edms-backend/internal/core/ports"
@@ -17,9 +18,12 @@ func NewUserHandler(service ports.UserService) *UserHandler {
 }
 
 func (h *UserHandler) GetUsers(c *fiber.Ctx) error {
-	users, err := h.service.GetAllUsers()
-	if err != nil {
-		return c.Status(500).JSON(fiber.Map{"error": err.Error()})
+	role := c.Query("role", "")
+	deptID, _ := strconv.Atoi(c.Query("department_id", "0"))
+
+	users, err := h.service.GetAllUsers(role, uint(deptID))
+	if err != nil { 
+		return c.Status(500).JSON(fiber.Map{"error": err.Error()}) 
 	}
 	return c.JSON(fiber.Map{"data": users})
 }

@@ -14,7 +14,11 @@ func NewUserService(repo ports.UserRepository) ports.UserService {
 	return &userService{repo: repo}
 }
 
-func (s *userService) GetAllUsers() ([]domain.User, error) {
+func (s *userService) GetAllUsers(role string, deptID uint) ([]domain.User, error) {
+	// ถ้ามีการส่ง role หรือ deptID มา ให้ใช้ฟังก์ชันค้นหาแบบกรอง
+	if role != "" || deptID > 0 {
+		return s.repo.FindByDeptAndRole(deptID, role)
+	}
 	return s.repo.FindAll()
 }
 

@@ -69,7 +69,7 @@ export default function EditDocumentPage({ params }: { params: Promise<{ id: str
     try {
       await api.put(`/api/v1/documents/${docId}`, formData);
       toast.success('แก้ไขข้อมูลสำเร็จ');
-      router.push('/dashboard');
+      router.push('/dashboard/documents');
     } catch (error) {
       toast.error('เกิดข้อผิดพลาดในการแก้ไขข้อมูล');
     } finally {

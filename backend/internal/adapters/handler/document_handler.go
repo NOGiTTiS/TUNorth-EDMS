@@ -5,6 +5,7 @@ import (
 	"strconv"
 	"strings"
 	"time"
+	"github.com/golang-jwt/jwt/v5"
 	"tunorth-edms-backend/internal/core/domain"
 	"tunorth-edms-backend/internal/core/ports"
 
@@ -141,7 +142,7 @@ func (h *DocumentHandler) RouteDocument(c *fiber.Ctx) error {
 	// ดึง User ID จาก Token (ใน Middleware ที่จะทำ หรือ Mock ไปก่อน)
 	// *เพื่อความรวดเร็วในการ Dev ตอนนี้ ให้ Hardcode ไปก่อนว่า User คือ ID 2 (Director)* 
 	// (จริงๆ ต้องดึงจาก c.Locals("user").(*jwt.Token)...)
-	userID := uint(2) 
+	userID := getUserID(c) 
 
 	var req ports.RouteRequest
 	if err := c.BodyParser(&req); err != nil {
@@ -164,11 +165,10 @@ func (h *DocumentHandler) GetDepartments(c *fiber.Ctx) error {
 	return c.JSON(fiber.Map{"data": depts})
 }
 
-// POST /documents/:id/distribute
 func (h *DocumentHandler) Distribute(c *fiber.Ctx) error {
 	id, _ := c.ParamsInt("id")
 	// Mock User Admin (ID 1)
-	userID := uint(1)
+	userID := getUserID(c)
 
 	type DistributeReq struct {
 		DeptIDs []uint `json:"dept_ids"`
@@ -182,12 +182,12 @@ func (h *DocumentHandler) Distribute(c *fiber.Ctx) error {
 		return c.Status(500).JSON(fiber.Map{"error": err.Error()})
 	}
 
-	return c.JSON(fiber.Map{"message": "แจกจ่ายหนังสือสำเร็จ"})
+	return c.JSON(fiber.Map{"message": "ส่งต่อหนังสือสำเร็จ"})
 }
 
 func (h *DocumentHandler) StampDocument(c *fiber.Ctx) error {
 	id, _ := c.ParamsInt("id")
-	userID := uint(1) // Mock Admin ID
+	userID := getUserID(c) // Mock Admin ID
 
 	var req StampRequest
 	if err := c.BodyParser(&req); err != nil {
@@ -231,4 +231,94 @@ func (h *DocumentHandler) DeleteDepartment(c *fiber.Ctx) error {
 	id, _ := c.ParamsInt("id")
 	if err := h.service.DeleteDepartment(uint(id)); err != nil { return c.Status(500).JSON(fiber.Map{"error": err.Error()}) }
 	return c.JSON(fiber.Map{"message": "ลบฝ่ายสำเร็จ"})
+}
+
+func (h *DocumentHandler) ForwardToHead(c *fiber.Ctx) error {
+	id, _ := c.ParamsInt("id")
+	
+	// Mock User ID ของคนส่ง (ในระบบจริงดึงจาก Token JWT)
+	// สมมติว่าเป็น User ID 3 (ธุรการฝ่าย)
+	senderID := getUserID(c)
+
+	// Struct รับข้อมูล JSON: { "head_ids": [5, 6] }
+	type ForwardReq struct {
+		HeadIDs []uint `json:"head_ids"`
+	}
+	
+	var req ForwardReq
+	if err := c.BodyParser(&req); err != nil {
+		return c.Status(400).JSON(fiber.Map{"error": "Invalid request body"})
+	}
+
+	if len(req.HeadIDs) == 0 {
+		return c.Status(400).JSON(fiber.Map{"error": "กรุณาเลือกหัวหน้างานอย่างน้อย 1 คน"})
+	}
+
+	// เรียก Service
+	if err := h.service.ForwardToHead(uint(id), senderID, req.HeadIDs); err != nil {
+		return c.Status(500).JSON(fiber.Map{"error": err.Error()})
+	}
+
+	return c.JSON(fiber.Map{"message": "ส่งต่อหัวหน้างานสำเร็จ"})
+}
+
+func (h *DocumentHandler) ForwardToDeputy(c *fiber.Ctx) error {
+	id, _ := c.ParamsInt("id")
+	senderID := getUserID(c) // Mock ID ของธุรการฝ่าย (ในระบบจริงต้องดึงจาก Token)
+
+	type ForwardReq struct {
+		Note string `json:"note"`
+	}
+	var req ForwardReq
+	c.BodyParser(&req) // อนุญาตให้ Note ว่างได้
+
+	if err := h.service.ForwardToDeputy(uint(id), senderID, req.Note); err != nil {
+		return c.Status(500).JSON(fiber.Map{"error": err.Error()})
+	}
+	return c.JSON(fiber.Map{"message": "ส่งเสนอรองผู้อำนวยการสำเร็จ"})
+}
+
+func (h *DocumentHandler) DeputySign(c *fiber.Ctx) error {
+	id, _ := c.ParamsInt("id")
+	userID := getUserID(c) // Mock ID ของรองผู้อำนวยการ
+
+	var req ports.RouteRequest
+	if err := c.BodyParser(&req); err != nil {
+		return c.Status(400).JSON(fiber.Map{"error": "ข้อมูลไม่ถูกต้อง"})
+	}
+
+	if err := h.service.DeputySign(uint(id), userID, req); err != nil {
+		return c.Status(500).JSON(fiber.Map{"error": err.Error()})
+	}
+	return c.JSON(fiber.Map{"message": "รองผู้อำนวยการลงนามสั่งการสำเร็จ"})
+}
+
+func (h *DocumentHandler) CompleteDocument(c *fiber.Ctx) error {
+	id, _ := c.ParamsInt("id")
+	userID := uint(5) // Mock ID หัวหน้างาน
+
+	if err := h.service.CompleteDocument(uint(id), userID); err != nil {
+		return c.Status(500).JSON(fiber.Map{"error": err.Error()})
+	}
+	return c.JSON(fiber.Map{"message": "ดำเนินการเสร็จสิ้น"})
+}
+
+// ฟังก์ชันช่วยดึง User ID จาก Token ที่ส่งมาใน Header
+func getUserID(c *fiber.Ctx) uint {
+	authHeader := c.Get("Authorization")
+	if authHeader == "" { return 0 }
+
+	tokenString := strings.Replace(authHeader, "Bearer ", "", 1)
+	
+    // ใช้ Secret Key เดียวกับที่ตั้งไว้ใน auth_service.go
+	token, _ := jwt.Parse(tokenString, func(token *jwt.Token) (interface{}, error) {
+		return []byte("my_super_secret_key_tunorth_edms"), nil
+	})
+
+	if claims, ok := token.Claims.(jwt.MapClaims); ok && token.Valid {
+		if id, ok := claims["user_id"].(float64); ok {
+			return uint(id)
+		}
+	}
+	return 0
 }

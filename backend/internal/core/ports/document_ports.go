@@ -51,6 +51,10 @@ type DocumentService interface {
 	CreateDepartment(req domain.Department) error
 	UpdateDepartment(id uint, req domain.Department) error
 	DeleteDepartment(id uint) error
+	ForwardToHead(docID uint, senderID uint, headIDs []uint) error
+	ForwardToDeputy(docID uint, senderID uint, note string) error
+	DeputySign(docID uint, userID uint, req RouteRequest) error
+	CompleteDocument(docID uint, userID uint) error
 }
 
 // สร้าง Struct สำหรับรับค่าการแก้ไขข้อมูล

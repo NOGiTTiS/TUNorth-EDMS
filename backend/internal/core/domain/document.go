@@ -12,9 +12,10 @@ const (
 	StatusPendingDirector DocStatus = "pending_director" // รอ ผอ. สั่งการ
 	StatusDirectorSigned  DocStatus = "director_signed"  // ผอ. สั่งการแล้ว (รอธุรการกลางส่งต่อ)
 	StatusDistributed     DocStatus = "distributed"      // ส่งต่อธุรการฝ่ายแล้ว (ถึงธุรการฝ่าย)
-	StatusPendingDeputy   DocStatus = "pending_deputy"   // รอ รอง ผอ.
-	StatusDeputySigned    DocStatus = "deputy_signed"    // รอง ผอ. สั่งการแล้ว
-	StatusSentToHead      DocStatus = "sent_to_head"     // ส่งหัวหน้างาน (จบกระบวนการ)
+	StatusPendingDeputy   DocStatus = "pending_deputy"   // รอ รองฯ ฝ่าย สั่งการ
+	StatusDeputySigned    DocStatus = "deputy_signed"    // รองฯ สั่งการแล้ว (กลับมาธุรการฝ่าย)
+	StatusSentToHead      DocStatus = "sent_to_head"     // ส่งหัวหน้างาน
+	StatusCompleted       DocStatus = "completed"        // จบกระบวนการ
 )
 
 type Document struct {
