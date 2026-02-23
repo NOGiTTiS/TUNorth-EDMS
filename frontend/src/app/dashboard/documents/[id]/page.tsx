@@ -24,6 +24,7 @@ import {
   RotateCcw,
   UserCheck,
   Send,
+  Loader2,
 } from "lucide-react"
 
 interface DocumentDetail {
@@ -513,43 +514,77 @@ export default function DocumentDetailPage({
             )}
 
           {/* ==================================================== */}
-          {/* FLOW 3: ธุรการฝ่าย (เสนอ รองฯ)                       */}
+          {/* FLOW 3: ธุรการฝ่าย (รับเรื่องจากธุรการกลาง -> เสนอ รองฯ) */}
           {/* ==================================================== */}
           {user?.role === "admin_dept" && document.status === "distributed" && (
-            <Card className="border-orange-200 shadow-md">
-              <CardHeader className="bg-orange-50 pb-3 border-b border-orange-100">
-                <CardTitle className="text-lg text-theme-main flex items-center gap-2">
-                  <UserCheck className="h-5 w-5" /> เสนอรองผู้อำนวยการฝ่าย
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="pt-4 space-y-4">
-                <div className="bg-orange-50 p-3 rounded border border-orange-200 text-xs text-orange-800">
-                  หนังสือมาถึงฝ่ายแล้ว กดปุ่มเพื่อเสนอรองฯ พิจารณา
-                </div>
-                <Button
-                  className="w-full bg-theme-main hover:bg-theme-main/80 h-12 text-md"
-                  onClick={handleForwardToDeputy}
-                  disabled={isSubmitting}
-                >
-                  {isSubmitting ? "กำลังส่ง..." : "ส่งเสนอรองฯ"}
-                </Button>
-              </CardContent>
-            </Card>
+              <Card className="border-t-2 border-theme-main shadow-md">
+                  <CardHeader className="bg-theme-main pb-3 border-b border-theme-main">
+                      <CardTitle className="text-lg text-white flex items-center gap-2">
+                          <UserCheck className="h-5 w-5" /> ลงรับและเสนอฝ่าย
+                      </CardTitle>
+                  </CardHeader>
+                  <CardContent className="pt-4 space-y-4">
+                      <div className="bg-blue-50 p-3 rounded border border-blue-100 text-xs text-theme-main">
+                          <strong>ระเบียบงานสารบรรณ:</strong> ระบบจะประทับตรา "ลงรับฝ่าย" และ "กรอบเสนอรองฯ" ให้อัตโนมัติในไฟล์ PDF
+                      </div>
+
+                      <div className="space-y-2">
+                          <Label className="text-sm font-semibold text-theme-main">ข้อความบันทึกเสนอ (ถ้ามี)</Label>
+                          <Textarea 
+                              placeholder="เช่น เพื่อโปรดพิจารณา..." 
+                              className="min-h-[80px] bg-white border-theme-main focus-visible:ring-theme-main"
+                              value={comment} 
+                              onChange={e => setComment(e.target.value)} 
+                          />
+                      </div>
+
+                      <Button 
+                          className="w-full bg-theme-main hover:bg-theme-main h-12 text-md shadow-lg shadow-theme-main" 
+                          onClick={handleForwardToDeputy} 
+                          disabled={isSubmitting}
+                      >
+                          {isSubmitting ? <Loader2 className="animate-spin mr-2"/> : <Send className="mr-2 h-4 w-4"/>}
+                          ประทับตราและส่งเสนอรองฯ
+                      </Button>
+                  </CardContent>
+              </Card>
           )}
 
           {/* ==================================================== */}
           {/* FLOW 4: รองผู้อำนวยการ (เกษียร)                      */}
           {/* ==================================================== */}
           {user?.role === "deputy" && document.status === "pending_deputy" && (
-            <Card className="border-orange-200 shadow-md">
-              <CardHeader className="bg-orange-50 pb-3 border-b border-orange-100">
+            <Card className="border-theme-main shadow-md">
+              <CardHeader className="bg-theme-main pb-3 border-b border-theme-main">
                 <CardTitle className="text-lg text-theme-main flex items-center gap-2">
                   <PenTool className="h-5 w-5" /> เกษียรสั่งการ (รองฯ)
                 </CardTitle>
               </CardHeader>
               <CardContent className="pt-4 space-y-4">
-                {/* Reuse UI Checkbox + SigPad similar to Director but call handleDeputySign */}
-                {/* (เพื่อความกระชับ ขอละส่วนซ้ำซ้อน แต่ในโค้ดจริงต้องใส่ให้ครบเหมือน Flow 1) */}
+                {/* Reuse Checkbox & Signature Pad Code */}
+                  <div className="flex flex-col gap-3">
+                    {[
+                      "ทราบ",
+                      "อนุมัติ/อนุญาต",
+                      "เห็นชอบตามเสนอ",
+                      "มอบหมาย/สั่งการ",
+                    ].map((act) => (
+                      <div key={act} className="flex items-center space-x-2">
+                        <Checkbox
+                          id={act}
+                          checked={selectedActions.includes(act)}
+                          onCheckedChange={() => toggleAction(act)}
+                        />
+                        <Label
+                          htmlFor={act}
+                          className="cursor-pointer font-normal text-sm"
+                        >
+                          {act}
+                        </Label>
+                      </div>
+                    ))}
+                  </div>
+                  <Separator />
                 <div className="space-y-2">
                   <Label>ข้อความสั่งการ</Label>
                   <Textarea

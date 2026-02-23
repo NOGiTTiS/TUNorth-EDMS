@@ -594,31 +594,38 @@ func (s *documentService) canSendNotify() bool {
 
 // ธุรการฝ่าย -> เสนอ รอง ผอ.
 func (s *documentService) ForwardToDeputy(docID uint, senderID uint, note string) error {
-	// 1. ดึงข้อมูลผู้ส่ง (ธุรการฝ่าย) เพื่อหาว่าอยู่ฝ่ายไหน
-	sender, err := s.userRepo.FindByID(senderID)
+	// 1. ตรวจสอบข้อมูลผู้ส่งและหนังสือ
+	doc, err := s.repo.FindByID(docID)
 	if err != nil { return err }
-	if sender.DepartmentID == nil { return fmt.Errorf("user has no department") }
 
-	// 2. หารอง ผอ. ประจำฝ่ายนั้น
-	deputies, err := s.userRepo.FindByDeptAndRole(*sender.DepartmentID, string(domain.RoleDeputy))
-	if err != nil || len(deputies) == 0 { return fmt.Errorf("deputy not found for this department") }
-	deputy := deputies[0] // สมมติ 1 ฝ่ายมีรองฯ 1 คน
-
-	// 3. สร้าง Route
+	// 2. บันทึกประวัติการส่งต่อ (Route) โดยไม่วาด PDF
 	route := domain.DocumentRoute{
-		DocID: docID, SenderID: senderID, ReceiverID: &deputy.ID,
-		ActionType: "proposed", CommandNote: note, IsRead: false,
+		DocID:       docID,
+		SenderID:    senderID,
+		ActionType:  "proposed", // สถานะเสนอ
+		CommandNote: note,
+		IsRead:      false,
 	}
 	s.repo.CreateRoute(&route)
 
-	// 4. แจ้งเตือน Telegram -> รองฯ
-	if s.canSendNotify() && deputy.TelegramChatID != "" {
-		frontendURL := os.Getenv("FRONTEND_URL")
-		docLink := fmt.Sprintf("%s/dashboard/documents/%d", frontendURL, docID)
-		msg := fmt.Sprintf("⚠️ <b>หนังสือรอพิจารณา (ฝ่าย)</b>\n\nโปรดเข้าสู่ระบบเพื่อสั่งการ\n🔗 <b>เปิดเอกสาร:</b>\n%s", docLink)
-		s.notifier.SendMessage(deputy.TelegramChatID, msg)
+	// 3. แจ้งเตือน Telegram ไปยัง รอง ผอ. (ถ้ามี)
+	if s.canSendNotify() {
+		// ค้นหารอง ผอ. ในฝ่ายที่เกี่ยวข้อง
+		user, _ := s.userRepo.FindByID(senderID)
+		if user.DepartmentID != nil {
+			deputies, _ := s.userRepo.FindByDeptAndRole(*user.DepartmentID, string(domain.RoleDeputy))
+			for _, dep := range deputies {
+				if dep.TelegramChatID != "" {
+					frontendURL := os.Getenv("FRONTEND_URL")
+					docLink := fmt.Sprintf("%s/dashboard/documents/%d", frontendURL, doc.ID)
+					msg := fmt.Sprintf("⚠️ <b>มีหนังสือเสนอพิจารณา (ระดับฝ่าย)</b>\n📄 เรื่อง: %s\n🔗 <a href=\"%s\">คลิกเพื่อเปิดเอกสาร</a>", doc.Subject, docLink)
+					s.notifier.SendMessage(dep.TelegramChatID, msg)
+				}
+			}
+		}
 	}
 
+	// 4. อัปเดตสถานะเป็น "รอ รองฯ สั่งการ"
 	return s.repo.UpdateStatus(docID, domain.StatusPendingDeputy)
 }
 
@@ -632,85 +639,84 @@ func (s *documentService) DeputySign(docID uint, userID uint, req ports.RouteReq
 	pdf := gopdf.GoPdf{}
 	pdf.Start(gopdf.Config{PageSize: *gopdf.PageSizeA4})
 	
-	// 1. Import หน้าแรกมาวางก่อน
-	tpl1 := pdf.ImportPage(doc.FilePath, 1, "/MediaBox")
+	// 1. Import หน้าแรกมาใช้งาน (วาดทับลงไปในหน้า 1)
+	tpl := pdf.ImportPage(doc.FilePath, 1, "/MediaBox")
 	pdf.AddPage()
-	pdf.UseImportedTemplate(tpl1, 0, 0, 595, 842)
+	pdf.UseImportedTemplate(tpl, 0, 0, 595, 842)
 
-	// 2. เพิ่มหน้า 2 สำหรับการเกษียรของระดับฝ่าย
-	pdf.AddPage() 
 	_ = pdf.AddTTFFont("prompt", "./assets/fonts/Prompt-Regular.ttf")
-	pdf.SetFont("prompt", "", 12)
-	pdf.SetStrokeColor(0, 0, 180)
+	pdf.SetFont("prompt", "", 10)
+	pdf.SetStrokeColor(0, 0, 180) // สีน้ำเงิน
 	pdf.SetTextColor(0, 0, 180)
 
-	pdf.SetXY(50, 40)
-	pdf.Cell(nil, "บันทึกการพิจารณา/สั่งการระดับฝ่าย")
-	pdf.SetXY(50, 60)
-	pdf.SetFont("prompt", "", 10)
-	pdf.Cell(nil, "หน่วยงาน: "+user.Department.Name)
+	// =========================================================
+	// วาดตรายาง รอง ผอ. (มุมซ้ายล่าง - หน้า 1)
+	// =========================================================
+	// พิกัด X=50, Y=630 (อยู่ข้างล่างตราประทับเสนอ ผอ. เดิม)
+	boxX, boxY := 50.0, 630.0 
+	boxWidth := 240.0
+	boxHeight := 190.0
+	pdf.RectFromUpperLeftWithStyle(boxX, boxY, boxWidth, boxHeight, "D")
 
-	// --- วาดตรายาง รองฯ (ตำแหน่งบนซ้ายของหน้า 2) ---
-	boxX, boxY := 50.0, 90.0
-	pdf.RectFromUpperLeftWithStyle(boxX, boxY, 250, 240, "D")
-	
+	pdf.SetXY(boxX+10, boxY+15)
+	pdf.SetFont("prompt", "", 11)
+	pdf.Cell(nil, "ความเห็น/สั่งการ รองผู้อำนวยการฝ่าย")
+
 	options := []string{"ทราบ", "อนุมัติ/อนุญาต", "เห็นชอบตามเสนอ", "มอบหมาย/สั่งการ"}
-	currY := boxY + 20.0
+	currY := boxY + 35.0
 	for _, opt := range options {
-		pdf.RectFromUpperLeftWithStyle(boxX+15, currY, 10, 10, "D")
+		pdf.RectFromUpperLeftWithStyle(boxX+15, currY, 9, 9, "D")
 		if strings.Contains(req.Action, opt) {
-			pdf.SetXY(boxX+16, currY-2); pdf.SetFont("prompt", "", 14)
-			pdf.Cell(nil, "/"); pdf.SetFont("prompt", "", 11)
+			pdf.SetXY(boxX+15, currY-3); pdf.SetFont("prompt", "", 14)
+			pdf.Cell(nil, "/"); pdf.SetFont("prompt", "", 10)
 		}
-		pdf.SetXY(boxX+35, currY+8); pdf.Cell(nil, opt)
-		currY += 25.0
+		pdf.SetXY(boxX+30, currY+7); pdf.Cell(nil, opt)
+		currY += 20.0
 	}
 
-	// บันทึกข้อความ (Word Wrap)
+	// บรรทัดข้อความสั่งการ (Word Wrap)
 	if req.CommandNote != "" {
-		lines, _ := pdf.SplitText(req.CommandNote, 210)
+		lines, _ := pdf.SplitText(req.CommandNote, boxWidth-40)
 		textY := currY + 5.0
 		for _, line := range lines {
+			if textY > boxY+150 { break }
 			pdf.SetXY(boxX+20, textY); pdf.Cell(nil, line)
-			pdf.SetXY(boxX+20, textY+2); pdf.Cell(nil, ".............................................................")
-			textY += 18.0
+			pdf.SetXY(boxX+20, textY+2); pdf.Cell(nil, ".......................................................")
+			textY += 16.0
 		}
 	}
 
-	// ลายเซ็น รองฯ
+	// แปะลายเซ็นสด รอง ผอ.
 	if req.SignatureData != "" {
 		raw := strings.Split(req.SignatureData, ",")[1]
 		dec, _ := base64.StdEncoding.DecodeString(raw)
 		imgH, _ := gopdf.ImageHolderByBytes(dec)
-		pdf.ImageByHolder(imgH, boxX+80, boxY+145, &gopdf.Rect{W: 80, H: 40})
+		// วาดลายเซ็น (X, Y, W, H)
+		pdf.ImageByHolder(imgH, boxX+130, boxY+100, &gopdf.Rect{W: 75, H: 38})
 	}
 
-	pdf.SetXY(boxX+60, boxY+200)
-	pdf.Cell(nil, fmt.Sprintf("( %s )", user.FullName))
-	pdf.SetXY(boxX+55, boxY+215)
-	pdf.SetFont("prompt", "", 9)
+	// ชื่อและตำแหน่ง (อยู่กึ่งกลางตราประทับด้านล่าง)
+	nameText := fmt.Sprintf("( %s )", user.FullName)
+	pdf.SetXY(boxX+120, boxY+150)
+	pdf.Cell(nil, nameText)
+	pdf.SetXY(boxX+90, boxY+165)
+	pdf.SetFont("prompt", "", 8)
 	pdf.Cell(nil, "รองผู้อำนวยการโรงเรียนเตรียมอุดมศึกษา ภาคเหนือ")
 
-	// บันทึกไฟล์ใหม่
+	// 2. บันทึกไฟล์ใหม่และอัปเดตสถานะ
 	finalPath := strings.Replace(doc.FilePath, ".pdf", "_deputy.pdf", 1)
-	pdf.WritePdf(finalPath)
+	if finalPath == doc.FilePath { finalPath = strings.Replace(doc.FilePath, ".pdf", "_deputy.pdf", 1) }
+	err = pdf.WritePdf(finalPath)
+	if err != nil { return err }
 
 	doc.FilePath = finalPath
 	s.repo.Update(doc)
 
-	// สร้าง Route และแจ้งเตือน
+	// สร้าง Route บันทึกประวัติ
 	s.repo.CreateRoute(&domain.DocumentRoute{
 		DocID: docID, SenderID: userID, ActionType: domain.ActionType(req.Action), CommandNote: req.CommandNote, IsRead: true,
 	})
 
-	if s.canSendNotify() {
-		admins, _ := s.userRepo.FindByDeptAndRole(*user.DepartmentID, string(domain.RoleAdminDept))
-		for _, admin := range admins {
-			if admin.TelegramChatID != "" {
-				s.notifier.SendMessage(admin.TelegramChatID, "✅ <b>รองฯ ฝ่ายสั่งการแล้ว</b>\n📄 เรื่อง: "+doc.Subject)
-			}
-		}
-	}
 	return s.repo.UpdateStatus(doc.ID, domain.StatusDeputySigned)
 }
 
