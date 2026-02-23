@@ -17,6 +17,7 @@ import {
   UserCircle,
   Users,
   Network,
+  BookOpen
 } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
@@ -41,15 +42,13 @@ export default function DashboardLayout({
 
   const menuItems = [
     { name: "ภาพรวม (Dashboard)", icon: LayoutDashboard, href: "/dashboard" },
-    { name: "ลงรับหนังสือ", icon: FileInput, href: "/dashboard/receive" },
-    { name: "ค้นหาหนังสือ", icon: Search, href: "/dashboard/search" },
-
-    // ทุกคนเห็นโปรไฟล์
+    { name: 'ทะเบียนหนังสือ', icon: BookOpen, href: '/dashboard/documents' },
     { name: "โปรไฟล์ส่วนตัว", icon: UserCircle, href: "/dashboard/profile" },
 
     // เฉพาะ Admin
     ...(user.role === "admin_central"
       ? [
+          { name: "ลงรับหนังสือ", icon: FileInput, href: "/dashboard/receive" },
           { name: "จัดการฝ่าย", icon: Network, href: "/dashboard/departments" },
           { name: "จัดการผู้ใช้", icon: Users, href: "/dashboard/users" },
           { name: "ตั้งค่าระบบ", icon: Settings, href: "/dashboard/settings" },

@@ -1,6 +1,7 @@
 package handler
 
 import (
+	"strings"
 	"tunorth-edms-backend/internal/core/domain"
 	"tunorth-edms-backend/internal/core/ports"
 
@@ -103,4 +104,30 @@ func (h *UserHandler) UpdateProfile(c *fiber.Ctx) error {
 		return c.Status(500).JSON(fiber.Map{"error": err.Error()})
 	}
 	return c.JSON(fiber.Map{"message": "อัปเดตโปรไฟล์สำเร็จ"})
+}
+
+func (h *UserHandler) RegisterUser(c *fiber.Ctx) error {
+	var req UserPayload
+	if err := c.BodyParser(&req); err != nil {
+		return c.Status(400).JSON(fiber.Map{"error": "ข้อมูลไม่ถูกต้อง"})
+	}
+
+	// บังคับค่าเริ่มต้นเพื่อความปลอดภัย (คนที่สมัครเองจะเป็นธุรการฝ่ายโดย Default)
+	// Admin ค่อยไปเปลี่ยน Role ทีหลังได้
+	user := domain.User{
+		Username: req.Username,
+		Password: req.Password,
+		FullName: req.FullName,
+		Role:     domain.RoleAdminDept, // Default Role
+	}
+
+	if err := h.service.CreateUser(&user); err != nil {
+		// เช็ค Username ซ้ำ
+		if strings.Contains(err.Error(), "duplicate key") || strings.Contains(err.Error(), "23505") {
+			return c.Status(409).JSON(fiber.Map{"error": "ชื่อผู้ใช้งานนี้มีในระบบแล้ว"})
+		}
+		return c.Status(500).JSON(fiber.Map{"error": "สมัครสมาชิกไม่สำเร็จ: " + err.Error()})
+	}
+
+	return c.JSON(fiber.Map{"message": "สมัครสมาชิกสำเร็จ กรุณาเข้าสู่ระบบ"})
 }

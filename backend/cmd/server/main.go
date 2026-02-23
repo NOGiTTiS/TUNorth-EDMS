@@ -59,6 +59,10 @@ func main() {
 
 	// --- Route Auth ---
 	v1.Post("/login", authHandler.Login)
+	v1.Post("/register", userHandler.RegisterUser)
+
+	v1.Get("/departments", docHandler.GetDepartments) 
+    v1.Get("/telegram/latest-id", settingHandler.GetLatestTelegramChatID) 
 
 	// --- Route Document ---
 	v1.Post("/documents", docHandler.RegisterDocument)
@@ -77,7 +81,6 @@ func main() {
 	v1.Post("/documents/:id/distribute", docHandler.Distribute)
 	
 	// --- Route Department ---
-	v1.Get("/departments", docHandler.GetDepartments)
 	v1.Post("/documents/:id/distribute", docHandler.Distribute)
 	v1.Post("/departments", docHandler.CreateDepartment)
 	v1.Put("/departments/:id", docHandler.UpdateDepartment)

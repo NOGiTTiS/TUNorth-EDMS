@@ -7,6 +7,9 @@ import (
 	"github.com/google/uuid"
 	"tunorth-edms-backend/internal/core/ports"
 	"github.com/gofiber/fiber/v2"
+	"encoding/json"
+    "net/http"
+    "tunorth-edms-backend/internal/core/domain"
 )
 
 type SettingHandler struct {
@@ -67,4 +70,50 @@ func (h *SettingHandler) UploadImage(c *fiber.Ctx) error {
 	return c.JSON(fiber.Map{
 		"url": webPath, 
 	})
+}
+
+// GET /telegram/latest-id (Public)
+func (h *SettingHandler) GetLatestTelegramChatID(c *fiber.Ctx) error {
+    // 1. ดึง Token จาก Database
+    settings, err := h.service.GetAllSettings()
+    if err != nil {
+        return c.Status(500).JSON(fiber.Map{"error": "Internal Server Error"})
+    }
+    
+    token := settings[domain.SetTelegramToken]
+    if token == "" {
+        return c.Status(400).JSON(fiber.Map{"error": "ระบบยังไม่ได้ตั้งค่า Telegram Token"})
+    }
+
+    // 2. เรียก API Telegram getUpdates เพื่อดูข้อความล่าสุด
+    resp, err := http.Get(fmt.Sprintf("https://api.telegram.org/bot%s/getUpdates?limit=1&offset=-1", token))
+    if err != nil {
+        return c.Status(502).JSON(fiber.Map{"error": "ไม่สามารถติดต่อ Telegram Server ได้"})
+    }
+    defer resp.Body.Close()
+
+    // 3. แกะ JSON Response
+    var result struct {
+        Ok     bool `json:"ok"`
+        Result []struct {
+            Message struct {
+                Chat struct {
+                    ID int64 `json:"id"`
+                } `json:"chat"`
+            } `json:"message"`
+        } `json:"result"`
+    }
+
+    if err := json.NewDecoder(resp.Body).Decode(&result); err != nil {
+        return c.Status(500).JSON(fiber.Map{"error": "Parse Error"})
+    }
+
+    if !result.Ok || len(result.Result) == 0 {
+        return c.Status(404).JSON(fiber.Map{"error": "ไม่พบข้อความล่าสุด (กรุณากด Start ที่บอทก่อน)"})
+    }
+
+    // 4. ส่ง ID กลับไป
+    return c.JSON(fiber.Map{
+        "chat_id": result.Result[0].Message.Chat.ID,
+    })
 }

@@ -2,6 +2,7 @@
 
 import { useState } from "react"
 import { useRouter } from "next/navigation"
+import Link from "next/link"
 import { useAuthStore } from "@/store/authStore"
 import { useSettingStore } from "@/store/settingStore"
 import api from "@/lib/api"
@@ -141,20 +142,20 @@ export default function LoginPage() {
           </CardContent>
 
           <CardFooter className="flex flex-col gap-4 pb-8">
-            <Button
-              type="submit"
-              className="w-full mt-6 bg-theme-main text-white hover:brightness-90 transition-all shadow-md h-12 text-md font-medium border-0"
+            <Button 
+              type="submit" 
+              className="w-full bg-theme-main text-white hover:brightness-90 transition-all shadow-md h-12 mt-6 text-md font-medium border-0" 
               disabled={isLoading}
             >
-              {isLoading ? (
-                <Loader2 className="w-5 h-5 animate-spin" />
-              ) : (
-                "เข้าสู่ระบบ"
-              )}
+              {isLoading ? <Loader2 className="w-5 h-5 animate-spin" /> : 'เข้าสู่ระบบ'}
             </Button>
+            
+            <div className="text-sm text-slate-500 text-center mt-1">
+              ยังไม่มีบัญชีใช่หรือไม่? <Link href="/register" className="text-theme-main hover:underline font-semibold">สมัครสมาชิก</Link>
+            </div>
 
             <p className="text-xs text-slate-400 text-center mt-2">
-              {settings.copyright || "© 2026 TUNorth"}
+              {settings.copyright || '© 2026 TUNorth'}
             </p>
           </CardFooter>
         </form>
