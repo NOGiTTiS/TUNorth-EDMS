@@ -241,7 +241,7 @@ export default function UserPage() {
                       <TableCell>
                         <Badge
                           variant="secondary"
-                          className="bg-blue-50 text-blue-700 border-blue-200 font-normal"
+                          className="bg-slate-50 text-theme-main border-theme-main font-normal"
                         >
                           {roleMap[u.role] || u.role}
                         </Badge>
