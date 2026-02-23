@@ -185,8 +185,8 @@ export default function DashboardPage() {
   return (
     <div className="space-y-6 pb-10 max-w-7xl mx-auto">
       <PageHeader
-        title="ภาพรวม (Dashboard)"
-        description={`รายการหนังสือเข้าล่าสุด (ทั้งหมด ${totalItems} รายการ)`}
+        title="ทะเบียนหนังสือ"
+        description={`รายการหนังสือ (ทั้งหมด ${totalItems} รายการ)`}
         icon={LayoutDashboard}
       >
         {user?.role === "admin_central" && (

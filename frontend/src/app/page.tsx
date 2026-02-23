@@ -81,18 +81,18 @@ export default function LoginPage() {
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-theme-grad p-4">
-      <Card className="w-full max-w-md shadow-2xl border-t-4 border-theme-main bg-white/95 backdrop-blur-sm">
+    <div className="min-h-screen flex items-center justify-center bg-theme-grad p-4 sm:p-8">
+      <Card className="w-full max-w-md shadow-2xl border-t-4 border-theme-main bg-white/95 backdrop-blur-sm overflow-hidden">
         <CardHeader className="space-y-1 text-center">
           <div className="flex justify-center mb-4">
             {settings.logo_url ? (
               <img
                 src={getImageUrl(settings.logo_url)}
                 alt="System Logo"
-                className="h-24 w-auto object-contain drop-shadow-sm"
+                className="h-16 sm:h-24 w-auto object-contain drop-shadow-sm"
               />
             ) : (
-              <div className="w-20 h-20 bg-theme-main rounded-full flex items-center justify-center text-white text-4xl font-bold shadow-lg">
+              <div className="w-16 h-16 sm:w-20 sm:h-20 bg-theme-main rounded-full flex items-center justify-center text-white text-3xl sm:text-4xl font-bold shadow-lg">
                 {settings.system_name?.charAt(0) || "T"}
               </div>
             )}
@@ -142,20 +142,30 @@ export default function LoginPage() {
           </CardContent>
 
           <CardFooter className="flex flex-col gap-4 pb-8">
-            <Button 
-              type="submit" 
-              className="w-full bg-theme-main text-white hover:brightness-90 transition-all shadow-md h-12 mt-6 text-md font-medium border-0" 
+            <Button
+              type="submit"
+              className="w-full bg-theme-main text-white hover:brightness-90 transition-all shadow-md h-12 mt-6 text-md font-medium border-0"
               disabled={isLoading}
             >
-              {isLoading ? <Loader2 className="w-5 h-5 animate-spin" /> : 'เข้าสู่ระบบ'}
+              {isLoading ? (
+                <Loader2 className="w-5 h-5 animate-spin" />
+              ) : (
+                "เข้าสู่ระบบ"
+              )}
             </Button>
-            
+
             <div className="text-sm text-slate-500 text-center mt-1">
-              ยังไม่มีบัญชีใช่หรือไม่? <Link href="/register" className="text-theme-main hover:underline font-semibold">สมัครสมาชิก</Link>
+              ยังไม่มีบัญชีใช่หรือไม่?{" "}
+              <Link
+                href="/register"
+                className="text-theme-main hover:underline font-semibold"
+              >
+                สมัครสมาชิก
+              </Link>
             </div>
 
             <p className="text-xs text-slate-400 text-center mt-2">
-              {settings.copyright || '© 2026 TUNorth'}
+              {settings.copyright || "© 2026 TUNorth"}
             </p>
           </CardFooter>
         </form>
