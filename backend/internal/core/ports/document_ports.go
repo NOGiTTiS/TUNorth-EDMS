@@ -26,6 +26,12 @@ type DashboardStats struct {
 	PendingWorks int64 `json:"pending_works"` // งานที่ต้องทำ (ตาม Role)
 	TotalMonth   int64 `json:"total_month"`   // หนังสือเข้าเดือนนี้ (ทั้งหมด)
 	Completed    int64 `json:"completed"`     // งานที่เสร็จแล้ว (Option)
+	MonthlyStats []MonthlyStat `json:"monthly_stats"`
+}
+
+type MonthlyStat struct {
+	Month int `json:"month"`
+	Count int `json:"count"`
 }
 
 type DocumentRepository interface {

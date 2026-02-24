@@ -202,5 +202,22 @@ func (r *documentRepo) GetDashboardStats(userID uint, role string, deptID *uint)
 			Group("documents.id").Count(&stats.PendingWorks)
 	}
 
+	// ==========================================
+	// 3. ดึงสถิติรายเดือน (กราฟ) - เฉพาะปีปัจจุบัน
+	// ==========================================
+	var monthly []ports.MonthlyStat
+	
+	// Query Group By เดือน
+	err := r.db.Model(&domain.Document{}).
+		Select("CAST(EXTRACT(MONTH FROM receive_date) AS INTEGER) as month, count(*) as count").
+		Where("EXTRACT(YEAR FROM receive_date) = ?", time.Now().Year()).
+		Group("month").
+		Order("month").
+		Scan(&monthly).Error
+
+	if err == nil {
+		stats.MonthlyStats = monthly
+	}
+
 	return stats, nil
 }
