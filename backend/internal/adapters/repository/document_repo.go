@@ -25,32 +25,43 @@ func (r *documentRepo) SearchDocuments(q ports.DocumentQuery) (*ports.PaginatedD
 
 	db := r.db.Model(&domain.Document{})
 
-	// 1. ค้นหาจากข้อความ (เรื่อง, เลขรับ, เลขหนังสือ, จาก)
+	// --- เพิ่ม Logic กรองตามฝ่าย ---
+	if q.FilterDeptID > 0 {
+		// เลือกเฉพาะหนังสือที่มีประวัติการส่ง (Route) มายังฝ่ายนี้ (ReceiverDeptID)
+		// หรือ เป็นหนังสือที่ฝ่ายนี้เป็นคนสร้างเอง (CreatedByID -> User -> Dept) - (Optional แล้วแต่โจทย์)
+		// เอาแบบง่ายและตรงโจทย์คือ: ดู Route ที่ส่งมาหาฝ่ายนี้
+		db = db.Joins("JOIN document_routes ON document_routes.doc_id = documents.id").
+			Where("document_routes.receiver_dept_id = ?", q.FilterDeptID).
+			Group("documents.id") // ป้องกันข้อมูลซ้ำกรณีส่งมาหลายรอบ
+	}
+	// ---------------------------
+
+	// Logic ค้นหาเดิม
 	if q.Search != "" {
 		searchTerm := "%" + q.Search + "%"
-		db = db.Where("subject ILIKE ? OR receive_no ILIKE ? OR doc_no ILIKE ? OR \"from\" ILIKE ?", searchTerm, searchTerm, searchTerm, searchTerm)
+		db = db.Where("(documents.subject ILIKE ? OR documents.receive_no ILIKE ? OR documents.doc_no ILIKE ? OR documents.from ILIKE ?)", searchTerm, searchTerm, searchTerm, searchTerm)
 	}
 
-	// 2. กรองจาก ปี/เดือน (PostgreSQL ใช้ EXTRACT)
 	if q.Year > 0 {
-		db = db.Where("EXTRACT(YEAR FROM receive_date) = ?", q.Year)
+		db = db.Where("EXTRACT(YEAR FROM documents.receive_date) = ?", q.Year)
 	}
 	if q.Month > 0 {
-		db = db.Where("EXTRACT(MONTH FROM receive_date) = ?", q.Month)
+		db = db.Where("EXTRACT(MONTH FROM documents.receive_date) = ?", q.Month)
 	}
 
-	// นับจำนวนทั้งหมดที่ตรงเงื่อนไขก่อน
 	db.Count(&total)
 
-	// 3. แบ่งหน้า (Pagination)
 	if q.Page < 1 { q.Page = 1 }
 	if q.Limit < 1 { q.Limit = 20 }
 	offset := (q.Page - 1) * q.Limit
 
-	// ดึงข้อมูลจริง
-	err := db.Preload("CreatedBy").Order("created_at desc").Limit(q.Limit).Offset(offset).Find(&docs).Error
+	// Preload และ Order เหมือนเดิม
+	err := db.Preload("CreatedBy").
+		Order("documents.created_at desc").
+		Limit(q.Limit).
+		Offset(offset).
+		Find(&docs).Error
 
-	// คำนวณจำนวนหน้าทั้งหมด
 	totalPages := int((total + int64(q.Limit) - 1) / int64(q.Limit))
 
 	return &ports.PaginatedDocument{
@@ -114,9 +125,20 @@ func (r *documentRepo) FindLastDocument() (*domain.Document, error) {
 func (r *documentRepo) CreateDepartment(dept *domain.Department) error {
 	return r.db.Create(dept).Error
 }
+
 func (r *documentRepo) UpdateDepartment(dept *domain.Department) error {
 	return r.db.Save(dept).Error
 }
+
 func (r *documentRepo) DeleteDepartment(id uint) error {
 	return r.db.Delete(&domain.Department{}, id).Error
+}
+
+func (r *documentRepo) IsDocumentInDept(docID uint, deptID uint) (bool, error) {
+    var count int64
+    // เช็คว่ามี Route ไหนที่ส่งมา DeptID นี้หรือไม่
+    err := r.db.Model(&domain.DocumentRoute{}).
+        Where("doc_id = ? AND receiver_dept_id = ?", docID, deptID).
+        Count(&count).Error
+    return count > 0, err
 }

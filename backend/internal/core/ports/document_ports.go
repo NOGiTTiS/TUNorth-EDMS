@@ -11,6 +11,7 @@ type DocumentQuery struct {
 	Month  int
 	Page   int
 	Limit  int
+	FilterDeptID uint
 }
 
 type PaginatedDocument struct {
@@ -34,12 +35,13 @@ type DocumentRepository interface {
 	CreateDepartment(dept *domain.Department) error
 	UpdateDepartment(dept *domain.Department) error
 	DeleteDepartment(id uint) error
+	IsDocumentInDept(docID uint, deptID uint) (bool, error)
 }
 
 type DocumentService interface {
 	// รับข้อมูล File Header มาด้วยเพื่อ Save ลง Disk
 	RegisterDocument(doc *domain.Document, file *multipart.FileHeader) error
-	SearchDocuments(query DocumentQuery) (*PaginatedDocument, error)
+	SearchDocuments(userID uint, query DocumentQuery) (*PaginatedDocument, error)
 	GetDocumentByID(id uint) (*domain.Document, error)
 	KasienDocument(docID uint, userID uint, req RouteRequest) error
 	GetDepartments() ([]domain.Department, error)

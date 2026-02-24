@@ -481,7 +481,27 @@ func (s *documentService) KasienDocument(docID uint, userID uint, req ports.Rout
 }
 
 // ค้นหาเอกสาร
-func (s *documentService) SearchDocuments(query ports.DocumentQuery) (*ports.PaginatedDocument, error) {
+func (s *documentService) SearchDocuments(userID uint, query ports.DocumentQuery) (*ports.PaginatedDocument, error) {
+	// 1. ดึงข้อมูล User ผู้เรียก
+	user, err := s.userRepo.FindByID(userID)
+	if err != nil {
+		return nil, err
+	}
+
+	// 2. เช็ค Role เพื่อกำหนด FilterDeptID
+	// ถ้าเป็น Admin Central หรือ Director ให้เห็นทั้งหมด (FilterDeptID = 0)
+	if user.Role == domain.RoleAdminCentral || user.Role == domain.RoleDirector {
+		query.FilterDeptID = 0
+	} else {
+		// ถ้าเป็นระดับฝ่าย (Admin Dept, Deputy, Head)
+		if user.DepartmentID == nil {
+			// กรณีไม่มีสังกัด แต่ไม่ใช่ Admin ให้ไม่เห็นอะไรเลย หรือเห็นแค่งานตัวเอง (ในที่นี้ให้ไม่เห็น)
+			return &ports.PaginatedDocument{}, nil 
+		}
+		// กรองเฉพาะหนังสือที่ส่งมาที่ฝ่ายนี้
+		query.FilterDeptID = *user.DepartmentID
+	}
+
 	return s.repo.SearchDocuments(query)
 }
 
@@ -638,6 +658,8 @@ func (s *documentService) canSendNotify() bool {
 
 // ธุรการฝ่าย -> เสนอ รองฯ
 func (s *documentService) ForwardToDeputy(docID uint, senderID uint, note string) error {
+	if err := s.validateDeptAccess(docID, senderID); err != nil { return err }
+
 	doc, err := s.repo.FindByID(docID)
 	if err != nil {
 		return err
@@ -729,6 +751,8 @@ func (s *documentService) ForwardToDeputy(docID uint, senderID uint, note string
 
 // รอง ผอ. -> เกษียร
 func (s *documentService) DeputySign(docID uint, userID uint, req ports.RouteRequest) error {
+	if err := s.validateDeptAccess(docID, userID); err != nil { return err }
+
 	doc, err := s.repo.FindByID(docID)
 	if err != nil {
 		return err
@@ -870,6 +894,8 @@ func (s *documentService) DeputySign(docID uint, userID uint, req ports.RouteReq
 
 // ธุรการฝ่าย -> ส่งหัวหน้างาน
 func (s *documentService) ForwardToHead(docID uint, senderID uint, headIDs []uint) error {
+	if err := s.validateDeptAccess(docID, senderID); err != nil { return err }
+
 	// 1. ดึงข้อมูลหนังสือเพื่อใช้ในการแจ้งเตือน
 	doc, err := s.repo.FindByID(docID)
 	if err != nil {
@@ -916,6 +942,32 @@ func (s *documentService) ForwardToHead(docID uint, senderID uint, headIDs []uin
 
 // หัวหน้างานรับทราบและจบกระบวนการ
 func (s *documentService) CompleteDocument(docID uint, userID uint) error {
+	if err := s.validateDeptAccess(docID, userID); err != nil { return err }
 	// (ในอนาคตอาจจะมีการบันทึก Route ว่าใครเป็นคนกดรับทราบ)
 	return s.repo.UpdateStatus(docID, domain.StatusCompleted)
+}
+
+// ฟังก์ชันช่วยตรวจสอบว่า User มีสิทธิ์ในหนังสือเล่มนี้หรือไม่
+func (s *documentService) validateDeptAccess(docID uint, userID uint) error {
+	user, err := s.userRepo.FindByID(userID)
+	if err != nil { return err }
+
+	// Admin และ Director ทำได้ทุกอย่าง
+	if user.Role == domain.RoleAdminCentral || user.Role == domain.RoleDirector {
+		return nil
+	}
+
+	// ถ้าไม่มีสังกัด ห้ามทำรายการ
+	if user.DepartmentID == nil {
+		return fmt.Errorf("access denied: user has no department")
+	}
+
+	// เช็คว่าหนังสือเล่มนี้ เคยถูกส่งมาที่ฝ่ายของผู้ใช้หรือไม่
+	// เราต้องเพิ่มฟังก์ชันใน Repo เพื่อเช็ค Route
+	hasAccess, err := s.repo.IsDocumentInDept(docID, *user.DepartmentID)
+	if err != nil || !hasAccess {
+		return fmt.Errorf("access denied: document does not belong to your department")
+	}
+
+	return nil
 }

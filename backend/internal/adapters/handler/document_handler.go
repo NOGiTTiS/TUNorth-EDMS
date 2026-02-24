@@ -101,12 +101,13 @@ func (h *DocumentHandler) DeleteDocument(c *fiber.Ctx) error {
 }
 
 func (h *DocumentHandler) GetDocuments(c *fiber.Ctx) error {
-	// อ่านค่าจาก URL (?search=...&year=...&month=...&page=...)
+	userID := getUserID(c) // ดึง ID จาก Token
+
 	search := c.Query("search", "")
 	year, _ := strconv.Atoi(c.Query("year", "0"))
 	month, _ := strconv.Atoi(c.Query("month", "0"))
 	page, _ := strconv.Atoi(c.Query("page", "1"))
-	limit, _ := strconv.Atoi(c.Query("limit", "15")) // หน้าละ 15 รายการ
+	limit, _ := strconv.Atoi(c.Query("limit", "15"))
 
 	query := ports.DocumentQuery{
 		Search: search,
@@ -116,13 +117,13 @@ func (h *DocumentHandler) GetDocuments(c *fiber.Ctx) error {
 		Limit:  limit,
 	}
 
-	result, err := h.service.SearchDocuments(query)
+	// ส่ง userID เข้าไป
+	result, err := h.service.SearchDocuments(userID, query)
 	if err != nil {
 		return c.Status(500).JSON(fiber.Map{"error": err.Error()})
 	}
 
-	// ส่งกลับแบบก้อน PaginatedDocument ตรงๆ เลย
-	return c.JSON(result) 
+	return c.JSON(result)
 }
 
 // GET /documents/:id
