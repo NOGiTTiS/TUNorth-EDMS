@@ -482,24 +482,25 @@ func (s *documentService) KasienDocument(docID uint, userID uint, req ports.Rout
 
 // ค้นหาเอกสาร
 func (s *documentService) SearchDocuments(userID uint, query ports.DocumentQuery) (*ports.PaginatedDocument, error) {
-	// 1. ดึงข้อมูล User ผู้เรียก
 	user, err := s.userRepo.FindByID(userID)
-	if err != nil {
-		return nil, err
-	}
+	if err != nil { return nil, err }
 
-	// 2. เช็ค Role เพื่อกำหนด FilterDeptID
-	// ถ้าเป็น Admin Central หรือ Director ให้เห็นทั้งหมด (FilterDeptID = 0)
-	if user.Role == domain.RoleAdminCentral || user.Role == domain.RoleDirector {
-		query.FilterDeptID = 0
-	} else {
-		// ถ้าเป็นระดับฝ่าย (Admin Dept, Deputy, Head)
-		if user.DepartmentID == nil {
-			// กรณีไม่มีสังกัด แต่ไม่ใช่ Admin ให้ไม่เห็นอะไรเลย หรือเห็นแค่งานตัวเอง (ในที่นี้ให้ไม่เห็น)
-			return &ports.PaginatedDocument{}, nil 
-		}
-		// กรองเฉพาะหนังสือที่ส่งมาที่ฝ่ายนี้
+	// Logic การมองเห็น แบ่งตาม Role
+	switch user.Role {
+	case domain.RoleAdminCentral, domain.RoleDirector:
+		query.FilterDeptID = 0 // เห็นทั้งหมด
+		query.FilterUserID = 0
+
+	case domain.RoleHead:
+		// *** หัวหน้างาน: เห็นเฉพาะที่ส่งถึงตัวเอง ***
+		query.FilterUserID = user.ID
+		query.FilterDeptID = 0 
+
+	default:
+		// ธุรการฝ่าย / รองฯ: เห็นทั้งฝ่าย
+		if user.DepartmentID == nil { return &ports.PaginatedDocument{}, nil }
 		query.FilterDeptID = *user.DepartmentID
+		query.FilterUserID = 0
 	}
 
 	return s.repo.SearchDocuments(query)
@@ -942,8 +943,20 @@ func (s *documentService) ForwardToHead(docID uint, senderID uint, headIDs []uin
 
 // หัวหน้างานรับทราบและจบกระบวนการ
 func (s *documentService) CompleteDocument(docID uint, userID uint) error {
-	if err := s.validateDeptAccess(docID, userID); err != nil { return err }
-	// (ในอนาคตอาจจะมีการบันทึก Route ว่าใครเป็นคนกดรับทราบ)
+	user, err := s.userRepo.FindByID(userID)
+	if err != nil { return err }
+
+	// ถ้าเป็นหัวหน้างาน ต้องเช็คว่างานนี้ส่งถึงเขาจริงไหม
+	if user.Role == domain.RoleHead {
+		isAssigned, err := s.repo.IsDocumentAssignedToUser(docID, userID)
+		if err != nil || !isAssigned {
+			return fmt.Errorf("access denied: document is not assigned to you")
+		}
+	} else {
+        // ถ้าเป็น role อื่น (เช่น Admin แอบมากด) ก็ให้เช็ค Dept Access ปกติ
+        if err := s.validateDeptAccess(docID, userID); err != nil { return err }
+    }
+
 	return s.repo.UpdateStatus(docID, domain.StatusCompleted)
 }
 

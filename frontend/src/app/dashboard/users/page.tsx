@@ -51,11 +51,19 @@ interface User {
 }
 
 const roleMap: Record<string, string> = {
-  admin_central: "ธุรการกลาง (Admin)",
+  admin_central: "ธุรการกลาง",
   director: "ผู้อำนวยการ",
   deputy: "รองผู้อำนวยการ",
   admin_dept: "ธุรการฝ่าย",
   head: "หัวหน้างาน",
+}
+
+const roleColorMap: Record<string, string> = {
+  admin_central: "bg-red-50 text-red-600 border-red-200",
+  director: "bg-purple-50 text-purple-600 border-purple-200",
+  deputy: "bg-blue-50 text-blue-600 border-blue-200",
+  admin_dept: "bg-amber-50 text-amber-600 border-amber-200",
+  head: "bg-cyan-50 text-cyan-600 border-cyan-200",
 }
 
 export default function UserPage() {
@@ -241,7 +249,10 @@ export default function UserPage() {
                       <TableCell>
                         <Badge
                           variant="secondary"
-                          className="bg-slate-50 text-theme-main border-theme-main font-normal"
+                          className={`font-normal border ${
+                            roleColorMap[u.role] ||
+                            "bg-slate-50 text-slate-600 border-slate-200"
+                          }`}
                         >
                           {roleMap[u.role] || u.role}
                         </Badge>

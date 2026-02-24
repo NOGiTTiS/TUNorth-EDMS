@@ -26,13 +26,16 @@ func (r *documentRepo) SearchDocuments(q ports.DocumentQuery) (*ports.PaginatedD
 	db := r.db.Model(&domain.Document{})
 
 	// --- เพิ่ม Logic กรองตามฝ่าย ---
-	if q.FilterDeptID > 0 {
-		// เลือกเฉพาะหนังสือที่มีประวัติการส่ง (Route) มายังฝ่ายนี้ (ReceiverDeptID)
-		// หรือ เป็นหนังสือที่ฝ่ายนี้เป็นคนสร้างเอง (CreatedByID -> User -> Dept) - (Optional แล้วแต่โจทย์)
-		// เอาแบบง่ายและตรงโจทย์คือ: ดู Route ที่ส่งมาหาฝ่ายนี้
+	if q.FilterUserID > 0 {
+		// กรองเฉพาะหนังสือที่ส่งมาถึง User คนนี้โดยตรง (ReceiverID)
+		db = db.Joins("JOIN document_routes ON document_routes.doc_id = documents.id").
+			Where("document_routes.receiver_id = ?", q.FilterUserID).
+			Group("documents.id")
+	} else if q.FilterDeptID > 0 {
+		// กรองตามฝ่าย (สำหรับ ธุรการฝ่าย / รองฯ)
 		db = db.Joins("JOIN document_routes ON document_routes.doc_id = documents.id").
 			Where("document_routes.receiver_dept_id = ?", q.FilterDeptID).
-			Group("documents.id") // ป้องกันข้อมูลซ้ำกรณีส่งมาหลายรอบ
+			Group("documents.id")
 	}
 	// ---------------------------
 
@@ -141,4 +144,13 @@ func (r *documentRepo) IsDocumentInDept(docID uint, deptID uint) (bool, error) {
         Where("doc_id = ? AND receiver_dept_id = ?", docID, deptID).
         Count(&count).Error
     return count > 0, err
+}
+
+func (r *documentRepo) IsDocumentAssignedToUser(docID uint, userID uint) (bool, error) {
+	var count int64
+	// เช็คว่ามี Route ไหนที่ส่งหา UserID นี้โดยตรงหรือไม่
+	err := r.db.Model(&domain.DocumentRoute{}).
+		Where("doc_id = ? AND receiver_id = ?", docID, userID).
+		Count(&count).Error
+	return count > 0, err
 }

@@ -12,6 +12,7 @@ type DocumentQuery struct {
 	Page   int
 	Limit  int
 	FilterDeptID uint
+	FilterUserID uint
 }
 
 type PaginatedDocument struct {
@@ -36,6 +37,7 @@ type DocumentRepository interface {
 	UpdateDepartment(dept *domain.Department) error
 	DeleteDepartment(id uint) error
 	IsDocumentInDept(docID uint, deptID uint) (bool, error)
+	IsDocumentAssignedToUser(docID uint, userID uint) (bool, error)
 }
 
 type DocumentService interface {
