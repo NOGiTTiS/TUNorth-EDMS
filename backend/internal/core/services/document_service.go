@@ -174,37 +174,81 @@ func (s *documentService) StampAndSign(docID uint, adminID uint, deptIDs []uint,
 	}
 
 	// =========================================================
-	// ส่วนที่ 2: ตราประทับเสนอ ผอ. (ด้านล่าง - เลียนแบบภาพ 1.png)
+	// ส่วนที่ 2: ตราประทับเสนอ ผอ. (เล็กลงกว่า ผอ. เพื่อลำดับความสำคัญ)
 	// =========================================================
-	propX, propY := 50.0, 450.0
-	pdf.RectFromUpperLeftWithStyle(propX, propY, 230.0, 120.0, "D") // วาดกรอบ
+	propX, propY := 50.0, 420.0
+	boxW, boxH := 220.0, 150.0 // ลดขนาดลงจาก 240.0 x 160.0
 
-	pdf.SetFont("prompt", "", 11)
-	pdf.SetXY(propX+10, propY+18)
+	// วาดกรอบสี่เหลี่ยม
+	pdf.SetLineWidth(0.8) // เส้นบางลงจาก 1.0
+	pdf.RectFromUpperLeftWithStyle(propX, propY, boxW, boxH, "D")
+
+	// บรรทัดที่ 1: เรียน
+	pdf.SetFont("prompt", "", 10) // ลดขนาดจาก 12
+	pdf.SetXY(propX+10, propY+12)
 	pdf.Cell(nil, "เรียน  ผู้อำนวยการโรงเรียน")
 
-	pdf.SetXY(propX+25, propY+40)
-	pdf.SetFont("prompt", "", 10)
-	pdf.Cell(nil, "เพื่อโปรด  "+noteToDirector) // ใช้ข้อความจากหน้าบ้าน
+	// บรรทัดที่ 2: เพื่อโปรดทราบ (พร้อมวาดเส้นจุดไข่ปลาต่อท้าย)
+	pdf.SetXY(propX+20, propY+32)
+	pdf.Cell(nil, "เพื่อโปรดทราบ")
+	pdf.SetXY(propX+75, propY+32)
+	pdf.Cell(nil, "............................................................")
 
-	// วาดลายเซ็นธุรการ (Signature Pad Base64)
+	// บรรทัดที่ 3 เป็นต้นไป: จัดการข้อความที่รับมาจากหน้าเว็บ
+	pdf.SetFont("prompt", "", 9) // ลดขนาดจาก 11
+	textY := propY + 52.0
+
+	if noteToDirector != "" {
+		lines, _ := pdf.SplitText(noteToDirector, boxW-25)
+		for _, line := range lines {
+			if textY > propY+85 {
+				break
+			}
+
+			// วาดข้อความ
+			pdf.SetXY(propX+20, textY-2)
+			pdf.Cell(nil, line)
+
+			// วาดเส้นจุดไข่ปลารองรับข้อความ
+			pdf.SetXY(propX+12, textY)
+			pdf.Cell(nil, "...........................................................................................")
+
+			textY += 18.0
+		}
+	}
+
+	// เติมเส้นจุดไข่ปลาบรรทัดว่าง
+	for textY <= propY+75.0 {
+		pdf.SetXY(propX+12, textY)
+		pdf.Cell(nil, "...........................................................................................")
+		textY += 18.0
+	}
+
+	// แปะลายเซ็นสดธุรการกลาง
 	if signatureData != "" {
 		rawImgData := strings.Split(signatureData, ",")[1]
 		dec, err := base64.StdEncoding.DecodeString(rawImgData)
 		if err == nil {
 			imgH, err := gopdf.ImageHolderByBytes(dec)
 			if err == nil {
-				// แปะภาพลายเซ็น (X, Y, W, H)
-				pdf.ImageByHolder(imgH, propX+75, propY+50, &gopdf.Rect{W: 80, H: 40})
+				// วางลายเซ็นเหนือชื่อ
+				pdf.ImageByHolder(imgH, propX+(boxW-75)/2, propY+85, &gopdf.Rect{W: 75, H: 40})
 			}
 		}
 	}
 
-	// เขียนชื่อ-ตำแหน่งธุรการ
-	pdf.SetXY(propX+60, propY+95)
-	pdf.Cell(nil, fmt.Sprintf("( %s )", adminUser.FullName))
-	pdf.SetXY(propX+80, propY+108)
-	pdf.Cell(nil, "เจ้าหน้าที่ธุรการ")
+	// เขียนชื่อ และ ตำแหน่ง (จัดกึ่งกลางกรอบ)
+	pdf.SetFont("prompt", "", 10) // ลดขนาดจาก 11
+	nameText := fmt.Sprintf("( %s )", adminUser.FullName)
+	nameWidth, _ := pdf.MeasureTextWidth(nameText)
+	pdf.SetXY(propX+(boxW-nameWidth)/2, propY+125)
+	pdf.Cell(nil, nameText)
+
+	pdf.SetFont("prompt", "", 8) // ลดขนาดจาก 10
+	titleText := "เจ้าหน้าที่ธุรการ"
+	titleWidth, _ := pdf.MeasureTextWidth(titleText)
+	pdf.SetXY(propX+(boxW-titleWidth)/2, propY+138)
+	pdf.Cell(nil, titleText)
 
 	// 3. บันทึกไฟล์ใหม่และอัปเดตสถานะ
 	stampedPath := strings.Replace(doc.FilePath, ".pdf", "_final.pdf", 1)
@@ -658,17 +702,23 @@ func (s *documentService) ForwardToDeputy(docID uint, senderID uint, note string
 	}
 	s.repo.CreateRoute(&route)
 
-	// แจ้งเตือน Telegram
+	// =========================================================
+	// 3. แจ้งเตือน Telegram ไปยัง รอง ผอ.
+	// =========================================================
 	if s.canSendNotify() {
 		deputies, _ := s.userRepo.FindByDeptAndRole(*sender.DepartmentID, string(domain.RoleDeputy))
+
+		// สร้างลิงก์
+		frontendURL := os.Getenv("FRONTEND_URL")
+		if frontendURL == "" {
+			frontendURL = "http://localhost:3000"
+		}
+		docLink := fmt.Sprintf("%s/dashboard/documents/%d", frontendURL, doc.ID)
+
 		for _, dep := range deputies {
 			if dep.TelegramChatID != "" {
-				frontendURL := os.Getenv("FRONTEND_URL")
-				if frontendURL == "" {
-					frontendURL = "http://localhost:3000"
-				}
-				docLink := fmt.Sprintf("%s/dashboard/documents/%d", frontendURL, doc.ID)
-				msg := fmt.Sprintf("⚠️ <b>มีหนังสือเสนอพิจารณา (ระดับฝ่าย)</b>\n📄 เรื่อง: %s\n🔗 <a href=\"%s\">คลิกเพื่อเปิดเอกสาร</a>", doc.Subject, docLink)
+				msg := fmt.Sprintf("⚠️ <b>หนังสือเสนอพิจารณา (ระดับฝ่าย)</b> ⚠️\n\n📄 <b>เรื่อง:</b> %s\n🔖 <b>เลขรับ:</b> %s\n👤 <b>จาก:</b> %s\n📌 <b>สถานะ:</b> รอรองผู้อำนวยการฝ่ายสั่งการ\n\n🔗 <b>เปิดเอกสารได้ที่ลิงก์ด้านล่าง:</b>\n%s",
+					doc.Subject, doc.ReceiveNo, doc.From, docLink)
 				s.notifier.SendMessage(dep.TelegramChatID, msg)
 			}
 		}
@@ -745,7 +795,7 @@ func (s *documentService) DeputySign(docID uint, userID uint, req ports.RouteReq
 
 			// วาดจุดไข่ปลารองรับข้อความ
 			pdf.SetXY(boxX+12, textY)
-			pdf.Cell(nil, "........................................................................................")
+			pdf.Cell(nil, "............................................................................................................")
 			textY += 14.0
 		}
 	}

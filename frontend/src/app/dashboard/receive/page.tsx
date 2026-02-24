@@ -310,22 +310,23 @@ export default function ReceiveDocumentPage() {
 
         {/* ฝั่งขวา: การเกษียรเสนอและลายเซ็น (1/3) */}
         <div className="space-y-6">
-          <Card className="border-theme-main-light shadow-md sticky top-6">
-            <CardHeader className="bg-slate-50/50 border-b">
-              <CardTitle className="text-lg text-theme-main">
-                3. เสนอผู้อำนวยการ
+          <Card className="border-pink-200 shadow-md sticky top-6">
+            <CardHeader className="bg-pink-50 border-b border-pink-100">
+              <CardTitle className="text-lg text-pink-700 flex items-center gap-2">
+                <Send className="w-5 h-5" /> 3. เสนอผู้อำนวยการ
               </CardTitle>
             </CardHeader>
             <CardContent className="pt-6 space-y-5">
+              
+              {/* --- ส่วนที่แก้ไข: เปลี่ยนเป็น Textarea --- */}
               <div className="space-y-2">
-                <Label className="text-theme-dark">
-                  ข้อความเสนอ (เพื่อโปรด...)
-                </Label>
-                <Input
-                  name="note_to_director"
-                  value={formData.note_to_director}
-                  onChange={handleChange}
-                  className="border-theme-main-light focus:ring-theme-main"
+                <Label className="text-pink-700 font-bold">ข้อความเสนอผู้อำนวยการ</Label>
+                <Textarea 
+                    name="note_to_director" 
+                    value={formData.note_to_director} 
+                    onChange={handleChange} 
+                    placeholder="เช่น ทราบและพิจารณา..."
+                    className="border-pink-200 focus-visible:ring-pink-500 min-h-[80px] bg-slate-50"
                 />
               </div>
 
