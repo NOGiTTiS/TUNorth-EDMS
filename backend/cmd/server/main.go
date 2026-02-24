@@ -64,6 +64,8 @@ func main() {
 	v1.Get("/departments", docHandler.GetDepartments) 
     v1.Get("/telegram/latest-id", settingHandler.GetLatestTelegramChatID) 
 
+	v1.Get("/dashboard/stats", docHandler.GetStats)
+
 	// --- Route Document ---
 	v1.Post("/documents", docHandler.RegisterDocument)
 	v1.Get("/documents", docHandler.GetDocuments)

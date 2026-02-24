@@ -984,3 +984,13 @@ func (s *documentService) validateDeptAccess(docID uint, userID uint) error {
 
 	return nil
 }
+
+func (s *documentService) GetDashboardStats(userID uint) (*ports.DashboardStats, error) {
+	// ดึงข้อมูล User เพื่อรู้ Role และ DeptID
+	user, err := s.userRepo.FindByID(userID)
+	if err != nil {
+		return nil, err
+	}
+
+	return s.repo.GetDashboardStats(userID, string(user.Role), user.DepartmentID)
+}

@@ -3,6 +3,7 @@ package repository
 import (
 	"tunorth-edms-backend/internal/core/domain"
 	"tunorth-edms-backend/internal/core/ports"
+	"time"
 
 	"gorm.io/gorm"
 )
@@ -153,4 +154,53 @@ func (r *documentRepo) IsDocumentAssignedToUser(docID uint, userID uint) (bool, 
 		Where("doc_id = ? AND receiver_id = ?", docID, userID).
 		Count(&count).Error
 	return count > 0, err
+}
+
+func (r *documentRepo) GetDashboardStats(userID uint, role string, deptID *uint) (*ports.DashboardStats, error) {
+	stats := &ports.DashboardStats{}
+	
+	// 1. นับจำนวนหนังสือทั้งหมดในเดือนปัจจุบัน (Total Month)
+	// (นับเฉพาะที่ Active ไม่โดนลบ)
+	currentMonth := time.Now().Month()
+	currentYear := time.Now().Year()
+	r.db.Model(&domain.Document{}).
+		Where("EXTRACT(MONTH FROM receive_date) = ? AND EXTRACT(YEAR FROM receive_date) = ?", currentMonth, currentYear).
+		Count(&stats.TotalMonth)
+
+	// 2. นับจำนวนงานค้าง (Pending Works) ตาม Role
+	pendingQuery := r.db.Model(&domain.Document{})
+
+	switch role {
+	case string(domain.RoleDirector): 
+		// ผอ.: นับสถานะ "pending_director" ทั้งหมด
+		pendingQuery.Where("status = ?", domain.StatusPendingDirector).Count(&stats.PendingWorks)
+
+	case string(domain.RoleAdminCentral):
+		// ธุรการกลาง: นับสถานะ "director_signed" (รอแจกจ่าย)
+		pendingQuery.Where("status = ?", domain.StatusDirectorSigned).Count(&stats.PendingWorks)
+
+	case string(domain.RoleAdminDept):
+		// ธุรการฝ่าย: นับ "distributed" (ถึงฝ่ายแล้ว) + ต้องเป็นฝ่ายตัวเอง
+		if deptID != nil {
+			pendingQuery.Joins("JOIN document_routes ON document_routes.doc_id = documents.id").
+				Where("documents.status = ? AND document_routes.receiver_dept_id = ?", domain.StatusDistributed, *deptID).
+				Group("documents.id").Count(&stats.PendingWorks)
+		}
+
+	case string(domain.RoleDeputy):
+		// รองฯ: นับ "pending_deputy" (รอรองสั่งการ) + ต้องเป็นฝ่ายตัวเอง
+		if deptID != nil {
+			pendingQuery.Joins("JOIN document_routes ON document_routes.doc_id = documents.id").
+				Where("documents.status = ? AND document_routes.receiver_dept_id = ?", domain.StatusPendingDeputy, *deptID).
+				Group("documents.id").Count(&stats.PendingWorks)
+		}
+
+	case string(domain.RoleHead):
+		// หัวหน้างาน: นับ "sent_to_head" + ต้องส่งถึงตัวเอง (ReceiverID)
+		pendingQuery.Joins("JOIN document_routes ON document_routes.doc_id = documents.id").
+			Where("documents.status = ? AND document_routes.receiver_id = ?", domain.StatusSentToHead, userID).
+			Group("documents.id").Count(&stats.PendingWorks)
+	}
+
+	return stats, nil
 }

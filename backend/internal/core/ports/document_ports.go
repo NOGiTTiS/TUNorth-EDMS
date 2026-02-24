@@ -22,6 +22,12 @@ type PaginatedDocument struct {
 	TotalPages int               `json:"total_pages"`
 }
 
+type DashboardStats struct {
+	PendingWorks int64 `json:"pending_works"` // งานที่ต้องทำ (ตาม Role)
+	TotalMonth   int64 `json:"total_month"`   // หนังสือเข้าเดือนนี้ (ทั้งหมด)
+	Completed    int64 `json:"completed"`     // งานที่เสร็จแล้ว (Option)
+}
+
 type DocumentRepository interface {
 	Create(doc *domain.Document) error
 	SearchDocuments(query DocumentQuery) (*PaginatedDocument, error) 
@@ -38,6 +44,7 @@ type DocumentRepository interface {
 	DeleteDepartment(id uint) error
 	IsDocumentInDept(docID uint, deptID uint) (bool, error)
 	IsDocumentAssignedToUser(docID uint, userID uint) (bool, error)
+	GetDashboardStats(userID uint, role string, deptID *uint) (*DashboardStats, error)
 }
 
 type DocumentService interface {
@@ -59,6 +66,7 @@ type DocumentService interface {
 	ForwardToDeputy(docID uint, senderID uint, note string) error
 	DeputySign(docID uint, userID uint, req RouteRequest) error
 	CompleteDocument(docID uint, userID uint) error
+	GetDashboardStats(userID uint) (*DashboardStats, error)
 }
 
 // สร้าง Struct สำหรับรับค่าการแก้ไขข้อมูล
