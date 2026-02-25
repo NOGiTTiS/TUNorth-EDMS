@@ -18,9 +18,12 @@ import {
   Users,
   Network,
   BookOpen,
+  BarChartBig,
+  BookMarked,
 } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
+
 
 export default function DashboardLayout({
   children,
@@ -52,6 +55,8 @@ export default function DashboardLayout({
           { name: "จัดการฝ่าย", icon: Network, href: "/dashboard/departments" },
           { name: "จัดการผู้ใช้", icon: Users, href: "/dashboard/users" },
           { name: "ตั้งค่าระบบ", icon: Settings, href: "/dashboard/settings" },
+          { name: 'รายงานสรุป', icon: BarChartBig, href: '/dashboard/reports' },
+          { name: 'สมุดทะเบียนรับ', icon: BookMarked, href: '/dashboard/reports/logbook' }
         ]
       : []),
   ]

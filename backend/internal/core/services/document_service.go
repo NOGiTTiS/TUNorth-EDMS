@@ -483,7 +483,9 @@ func (s *documentService) KasienDocument(docID uint, userID uint, req ports.Rout
 // ค้นหาเอกสาร
 func (s *documentService) SearchDocuments(userID uint, query ports.DocumentQuery) (*ports.PaginatedDocument, error) {
 	user, err := s.userRepo.FindByID(userID)
-	if err != nil { return nil, err }
+	if err != nil {
+		return nil, err
+	}
 
 	// Logic การมองเห็น แบ่งตาม Role
 	switch user.Role {
@@ -494,11 +496,13 @@ func (s *documentService) SearchDocuments(userID uint, query ports.DocumentQuery
 	case domain.RoleHead:
 		// *** หัวหน้างาน: เห็นเฉพาะที่ส่งถึงตัวเอง ***
 		query.FilterUserID = user.ID
-		query.FilterDeptID = 0 
+		query.FilterDeptID = 0
 
 	default:
 		// ธุรการฝ่าย / รองฯ: เห็นทั้งฝ่าย
-		if user.DepartmentID == nil { return &ports.PaginatedDocument{}, nil }
+		if user.DepartmentID == nil {
+			return &ports.PaginatedDocument{}, nil
+		}
 		query.FilterDeptID = *user.DepartmentID
 		query.FilterUserID = 0
 	}
@@ -548,7 +552,7 @@ func (s *documentService) DistributeDocument(docID uint, adminID uint, deptIDs [
 		// 3.2 ส่งแจ้งเตือน Telegram
 		if s.canSendNotify() {
 			// ข้อความแจ้งเตือน (รูปแบบ HTML)
-			msg := fmt.Sprintf("📢 <b>หนังสือเข้าใหม่ถึงฝ่ายท่าน (%s)</b> 📢\n\n📄 <b>เรื่อง:</b> %s\n🔖 <b>เลขรับ:</b> %s\n👤 <b>จาก:</b> %s\n📌 <b>สถานะ:</b> แจกจ่ายไปยังฝ่ายแล้ว\n\n🔗 <b>เปิดเอกสารได้ที่ลิงก์ด้านล่าง:</b>\n%s",
+			msg := fmt.Sprintf("📢 <b>หนังสือเข้าใหม่ถึงฝ่ายท่าน (%s)</b> 📢\n\n📄 <b>เรื่อง:</b> %s\n🔖 <b>เลขรับ:</b> %s\n👤 <b>จาก:</b> %s\n📌 <b>สถานะ:</b> ส่งต่อไปยังฝ่ายแล้ว\n\n🔗 <b>เปิดเอกสารได้ที่ลิงก์ด้านล่าง:</b>\n%s",
 				dept.Name, doc.Subject, doc.ReceiveNo, doc.From, docLink)
 
 			// กรณีที่ 1: ส่งเข้า Chat ID ของ "ฝ่าย" (เช่น กลุ่มไลน์/กลุ่ม Telegram ของฝ่าย)
@@ -566,7 +570,7 @@ func (s *documentService) DistributeDocument(docID uint, adminID uint, deptIDs [
 		}
 	}
 
-	// 4. อัปเดตสถานะหนังสือเป็น "แจกจ่ายแล้ว"
+	// 4. อัปเดตสถานะหนังสือเป็น "ส่งต่อแล้ว"
 	return s.repo.UpdateStatus(docID, domain.StatusDistributed)
 }
 
@@ -659,7 +663,9 @@ func (s *documentService) canSendNotify() bool {
 
 // ธุรการฝ่าย -> เสนอ รองฯ
 func (s *documentService) ForwardToDeputy(docID uint, senderID uint, note string) error {
-	if err := s.validateDeptAccess(docID, senderID); err != nil { return err }
+	if err := s.validateDeptAccess(docID, senderID); err != nil {
+		return err
+	}
 
 	doc, err := s.repo.FindByID(docID)
 	if err != nil {
@@ -752,7 +758,9 @@ func (s *documentService) ForwardToDeputy(docID uint, senderID uint, note string
 
 // รอง ผอ. -> เกษียร
 func (s *documentService) DeputySign(docID uint, userID uint, req ports.RouteRequest) error {
-	if err := s.validateDeptAccess(docID, userID); err != nil { return err }
+	if err := s.validateDeptAccess(docID, userID); err != nil {
+		return err
+	}
 
 	doc, err := s.repo.FindByID(docID)
 	if err != nil {
@@ -895,7 +903,9 @@ func (s *documentService) DeputySign(docID uint, userID uint, req ports.RouteReq
 
 // ธุรการฝ่าย -> ส่งหัวหน้างาน
 func (s *documentService) ForwardToHead(docID uint, senderID uint, headIDs []uint) error {
-	if err := s.validateDeptAccess(docID, senderID); err != nil { return err }
+	if err := s.validateDeptAccess(docID, senderID); err != nil {
+		return err
+	}
 
 	// 1. ดึงข้อมูลหนังสือเพื่อใช้ในการแจ้งเตือน
 	doc, err := s.repo.FindByID(docID)
@@ -944,7 +954,9 @@ func (s *documentService) ForwardToHead(docID uint, senderID uint, headIDs []uin
 // หัวหน้างานรับทราบและจบกระบวนการ
 func (s *documentService) CompleteDocument(docID uint, userID uint) error {
 	user, err := s.userRepo.FindByID(userID)
-	if err != nil { return err }
+	if err != nil {
+		return err
+	}
 
 	// ถ้าเป็นหัวหน้างาน ต้องเช็คว่างานนี้ส่งถึงเขาจริงไหม
 	if user.Role == domain.RoleHead {
@@ -953,9 +965,11 @@ func (s *documentService) CompleteDocument(docID uint, userID uint) error {
 			return fmt.Errorf("access denied: document is not assigned to you")
 		}
 	} else {
-        // ถ้าเป็น role อื่น (เช่น Admin แอบมากด) ก็ให้เช็ค Dept Access ปกติ
-        if err := s.validateDeptAccess(docID, userID); err != nil { return err }
-    }
+		// ถ้าเป็น role อื่น (เช่น Admin แอบมากด) ก็ให้เช็ค Dept Access ปกติ
+		if err := s.validateDeptAccess(docID, userID); err != nil {
+			return err
+		}
+	}
 
 	return s.repo.UpdateStatus(docID, domain.StatusCompleted)
 }
@@ -963,7 +977,9 @@ func (s *documentService) CompleteDocument(docID uint, userID uint) error {
 // ฟังก์ชันช่วยตรวจสอบว่า User มีสิทธิ์ในหนังสือเล่มนี้หรือไม่
 func (s *documentService) validateDeptAccess(docID uint, userID uint) error {
 	user, err := s.userRepo.FindByID(userID)
-	if err != nil { return err }
+	if err != nil {
+		return err
+	}
 
 	// Admin และ Director ทำได้ทุกอย่าง
 	if user.Role == domain.RoleAdminCentral || user.Role == domain.RoleDirector {
@@ -993,4 +1009,18 @@ func (s *documentService) GetDashboardStats(userID uint) (*ports.DashboardStats,
 	}
 
 	return s.repo.GetDashboardStats(userID, string(user.Role), user.DepartmentID)
+}
+
+func (s *documentService) GetReportStats(start, end string) (*ports.ReportStats, error) {
+	// ถ้าไม่ส่งวันที่มา ให้ Default เป็นเดือนปัจจุบัน
+	if start == "" || end == "" {
+		now := time.Now()
+		start = time.Date(now.Year(), now.Month(), 1, 0, 0, 0, 0, time.Local).Format("2006-01-02")
+		end = time.Date(now.Year(), now.Month()+1, 0, 0, 0, 0, 0, time.Local).Format("2006-01-02")
+	}
+	return s.repo.GetReportStats(start, end)
+}
+
+func (s *documentService) GetLogbookReport(month int, year int) ([]domain.Document, error) {
+	return s.repo.GetLogbookReport(month, year)
 }

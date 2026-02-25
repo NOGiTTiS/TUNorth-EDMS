@@ -224,7 +224,7 @@ export default function DocumentDetailPage({
     }
   }
 
-  // 2. ธุรการกลาง แจกจ่าย
+  // 2. ธุรการกลาง ส่งต่อ
   const handleDistribute = async () => {
     if (selectedDepts.length === 0)
       return toast.error("กรุณาเลือกฝ่ายอย่างน้อย 1 ฝ่าย")
@@ -233,10 +233,10 @@ export default function DocumentDetailPage({
       await api.post(`/api/v1/documents/${document?.ID}/distribute`, {
         dept_ids: selectedDepts,
       })
-      toast.success("แจกจ่ายหนังสือเรียบร้อยแล้ว")
+      toast.success("ส่งต่อหนังสือเรียบร้อยแล้ว")
       router.push("/dashboard/documents")
     } catch (err) {
-      toast.error("เกิดข้อผิดพลาดในการแจกจ่าย")
+      toast.error("เกิดข้อผิดพลาดในการส่งต่อ")
     } finally {
       setIsSubmitting(false)
     }
@@ -444,7 +444,7 @@ export default function DocumentDetailPage({
               </Card>
             )}
 
-          {/* FLOW 2: ธุรการกลาง (แจกจ่าย) */}
+          {/* FLOW 2: ธุรการกลาง (ส่งต่อ) */}
           {user?.role === "admin_central" &&
             document.status === "director_signed" && (
               <Card className="border-theme-main-light shadow-md">

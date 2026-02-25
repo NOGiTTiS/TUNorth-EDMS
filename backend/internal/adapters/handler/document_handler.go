@@ -332,3 +332,27 @@ func (h *DocumentHandler) GetStats(c *fiber.Ctx) error {
 	}
 	return c.JSON(fiber.Map{"data": stats})
 }
+
+// GET /reports/summary
+func (h *DocumentHandler) GetReportStats(c *fiber.Ctx) error {
+	start := c.Query("start_date")
+	end := c.Query("end_date")
+
+	stats, err := h.service.GetReportStats(start, end)
+	if err != nil {
+		return c.Status(500).JSON(fiber.Map{"error": err.Error()})
+	}
+	return c.JSON(fiber.Map{"data": stats})
+}
+
+// GET /reports/logbook
+func (h *DocumentHandler) GetLogbookReport(c *fiber.Ctx) error {
+	month, _ := strconv.Atoi(c.Query("month", "0"))
+	year, _ := strconv.Atoi(c.Query("year", "0"))
+
+	docs, err := h.service.GetLogbookReport(month, year)
+	if err != nil {
+		return c.Status(500).JSON(fiber.Map{"error": err.Error()})
+	}
+	return c.JSON(fiber.Map{"data": docs})
+}

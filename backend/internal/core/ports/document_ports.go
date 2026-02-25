@@ -34,6 +34,26 @@ type MonthlyStat struct {
 	Count int `json:"count"`
 }
 
+// Struct สำหรับรับค่า Query รายงาน
+type ReportQuery struct {
+	StartDate string `json:"start_date"` // YYYY-MM-DD
+	EndDate   string `json:"end_date"`   // YYYY-MM-DD
+}
+
+// Struct สำหรับส่งข้อมูลกราฟกลับไป
+type ReportStats struct {
+	TotalDocs     int64            `json:"total_docs"`
+	ByStatus      []ChartData      `json:"by_status"`      // สำหรับ Pie Chart
+	ByDepartment  []ChartData      `json:"by_department"`  // สำหรับ Bar Chart
+	TopFiveSender []ChartData      `json:"top_five_sender"` // หน่วยงานภายนอกที่ส่งมาบ่อยสุด
+}
+
+type ChartData struct {
+	Name  string `json:"name"`
+	Value int    `json:"value"`
+	Fill  string `json:"fill,omitempty"` // สีของกราฟ (Optional)
+}
+
 type DocumentRepository interface {
 	Create(doc *domain.Document) error
 	SearchDocuments(query DocumentQuery) (*PaginatedDocument, error) 
@@ -51,6 +71,8 @@ type DocumentRepository interface {
 	IsDocumentInDept(docID uint, deptID uint) (bool, error)
 	IsDocumentAssignedToUser(docID uint, userID uint) (bool, error)
 	GetDashboardStats(userID uint, role string, deptID *uint) (*DashboardStats, error)
+	GetReportStats(start, end string) (*ReportStats, error)
+	GetLogbookReport(month int, year int) ([]domain.Document, error)
 }
 
 type DocumentService interface {
@@ -73,6 +95,8 @@ type DocumentService interface {
 	DeputySign(docID uint, userID uint, req RouteRequest) error
 	CompleteDocument(docID uint, userID uint) error
 	GetDashboardStats(userID uint) (*DashboardStats, error)
+	GetReportStats(start, end string) (*ReportStats, error)
+	GetLogbookReport(month int, year int) ([]domain.Document, error)
 }
 
 // สร้าง Struct สำหรับรับค่าการแก้ไขข้อมูล

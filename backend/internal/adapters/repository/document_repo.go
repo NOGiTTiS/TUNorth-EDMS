@@ -1,9 +1,9 @@
 package repository
 
 import (
+	"time"
 	"tunorth-edms-backend/internal/core/domain"
 	"tunorth-edms-backend/internal/core/ports"
-	"time"
 
 	"gorm.io/gorm"
 )
@@ -55,8 +55,12 @@ func (r *documentRepo) SearchDocuments(q ports.DocumentQuery) (*ports.PaginatedD
 
 	db.Count(&total)
 
-	if q.Page < 1 { q.Page = 1 }
-	if q.Limit < 1 { q.Limit = 20 }
+	if q.Page < 1 {
+		q.Page = 1
+	}
+	if q.Limit < 1 {
+		q.Limit = 20
+	}
 	offset := (q.Page - 1) * q.Limit
 
 	// Preload และ Order เหมือนเดิม
@@ -80,7 +84,7 @@ func (r *documentRepo) FindByID(id uint) (*domain.Document, error) {
 	var doc domain.Document
 	// Preload Routings เพื่อดูประวัติการส่ง, Preload Sender ของ Route
 	err := r.db.Preload("CreatedBy").
-		Preload("Routings.Sender"). // ดึงชื่อคนส่ง
+		Preload("Routings.Sender").   // ดึงชื่อคนส่ง
 		Preload("Routings.Receiver"). // ดึงชื่อคนรับ
 		First(&doc, id).Error
 	return &doc, err
@@ -139,12 +143,12 @@ func (r *documentRepo) DeleteDepartment(id uint) error {
 }
 
 func (r *documentRepo) IsDocumentInDept(docID uint, deptID uint) (bool, error) {
-    var count int64
-    // เช็คว่ามี Route ไหนที่ส่งมา DeptID นี้หรือไม่
-    err := r.db.Model(&domain.DocumentRoute{}).
-        Where("doc_id = ? AND receiver_dept_id = ?", docID, deptID).
-        Count(&count).Error
-    return count > 0, err
+	var count int64
+	// เช็คว่ามี Route ไหนที่ส่งมา DeptID นี้หรือไม่
+	err := r.db.Model(&domain.DocumentRoute{}).
+		Where("doc_id = ? AND receiver_dept_id = ?", docID, deptID).
+		Count(&count).Error
+	return count > 0, err
 }
 
 func (r *documentRepo) IsDocumentAssignedToUser(docID uint, userID uint) (bool, error) {
@@ -158,7 +162,7 @@ func (r *documentRepo) IsDocumentAssignedToUser(docID uint, userID uint) (bool, 
 
 func (r *documentRepo) GetDashboardStats(userID uint, role string, deptID *uint) (*ports.DashboardStats, error) {
 	stats := &ports.DashboardStats{}
-	
+
 	// 1. นับจำนวนหนังสือทั้งหมดในเดือนปัจจุบัน (Total Month)
 	// (นับเฉพาะที่ Active ไม่โดนลบ)
 	currentMonth := time.Now().Month()
@@ -171,12 +175,12 @@ func (r *documentRepo) GetDashboardStats(userID uint, role string, deptID *uint)
 	pendingQuery := r.db.Model(&domain.Document{})
 
 	switch role {
-	case string(domain.RoleDirector): 
+	case string(domain.RoleDirector):
 		// ผอ.: นับสถานะ "pending_director" ทั้งหมด
 		pendingQuery.Where("status = ?", domain.StatusPendingDirector).Count(&stats.PendingWorks)
 
 	case string(domain.RoleAdminCentral):
-		// ธุรการกลาง: นับสถานะ "director_signed" (รอแจกจ่าย)
+		// ธุรการกลาง: นับสถานะ "director_signed" (รอส่งต่อ)
 		pendingQuery.Where("status = ?", domain.StatusDirectorSigned).Count(&stats.PendingWorks)
 
 	case string(domain.RoleAdminDept):
@@ -206,7 +210,7 @@ func (r *documentRepo) GetDashboardStats(userID uint, role string, deptID *uint)
 	// 3. ดึงสถิติรายเดือน (กราฟ) - เฉพาะปีปัจจุบัน
 	// ==========================================
 	var monthly []ports.MonthlyStat
-	
+
 	// Query Group By เดือน
 	err := r.db.Model(&domain.Document{}).
 		Select("CAST(EXTRACT(MONTH FROM receive_date) AS INTEGER) as month, count(*) as count").
@@ -220,4 +224,60 @@ func (r *documentRepo) GetDashboardStats(userID uint, role string, deptID *uint)
 	}
 
 	return stats, nil
+}
+
+func (r *documentRepo) GetReportStats(start, end string) (*ports.ReportStats, error) {
+	stats := &ports.ReportStats{}
+
+	// แปลงวันที่ให้ครอบคลุมทั้งวัน (00:00:00 - 23:59:59)
+	startDate := start + " 00:00:00"
+	endDate := end + " 23:59:59"
+
+	// 1. จำนวนหนังสือทั้งหมดในช่วงเวลา (ดักจับ Error)
+	if err := r.db.Model(&domain.Document{}).
+		Where("receive_date BETWEEN ? AND ?", startDate, endDate).
+		Count(&stats.TotalDocs).Error; err != nil {
+		return nil, err
+	}
+
+	// 2. แยกตามสถานะ (Pie Chart) (ดักจับ Error)
+	if err := r.db.Model(&domain.Document{}).
+		Select("status as name, count(*) as value").
+		Where("receive_date BETWEEN ? AND ?", startDate, endDate).
+		Group("status").
+		Scan(&stats.ByStatus).Error; err != nil {
+		return nil, err
+	}
+
+	// 3. แยกตามฝ่ายที่รับผิดชอบ (Bar Chart) (ดักจับ Error)
+	if err := r.db.Table("document_routes").
+		Select("departments.name as name, count(*) as value").
+		Joins("JOIN departments ON departments.id = document_routes.receiver_dept_id").
+		Where("document_routes.created_at BETWEEN ? AND ?", startDate, endDate).
+		Group("departments.name").
+		Order("value desc").
+		Scan(&stats.ByDepartment).Error; err != nil {
+		return nil, err
+	}
+
+	return stats, nil
+}
+
+func (r *documentRepo) GetLogbookReport(month int, year int) ([]domain.Document, error) {
+	var docs []domain.Document
+	db := r.db.Model(&domain.Document{})
+
+	if year > 0 {
+		db = db.Where("EXTRACT(YEAR FROM receive_date) = ?", year)
+	}
+	if month > 0 {
+		db = db.Where("EXTRACT(MONTH FROM receive_date) = ?", month)
+	}
+
+	// ดึงข้อมูล Routings และ ReceiverDept เพื่อนำไปแสดงในช่อง "การปฏิบัติ"
+	err := db.Preload("Routings.ReceiverDept").
+		Order("receive_date ASC, id ASC"). // เรียงตามวันที่ลงรับและ ID (แทนลำดับการจด)
+		Find(&docs).Error
+
+	return docs, err
 }

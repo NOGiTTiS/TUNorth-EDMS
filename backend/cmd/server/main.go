@@ -97,6 +97,10 @@ func main() {
 	v1.Delete("/users/:id", userHandler.DeleteUser)
 	v1.Put("/profile/:id", userHandler.UpdateProfile)
 
+	// --- Route Report ---
+	v1.Get("/reports/summary", docHandler.GetReportStats)
+	v1.Get("/reports/logbook", docHandler.GetLogbookReport)
+
 	// --- Route Settings ---
 	v1.Get("/settings", settingHandler.GetSettings)
 	v1.Put("/settings", settingHandler.UpdateSettings)
