@@ -937,12 +937,20 @@ func (s *documentService) ForwardToHead(docID uint, senderID uint, headIDs []uin
 
 		// 2.2 แจ้งเตือน Telegram ไปยังหัวหน้างาน
 		if s.canSendNotify() {
-			// ต้องดึงข้อมูล User หัวหน้างานก่อน เพื่อเอา Chat ID
 			headUser, err := s.userRepo.FindByID(headID)
 			if err == nil && headUser.TelegramChatID != "" {
-				msg := fmt.Sprintf("📢 <b>งานเข้าใหม่ (จากธุรการฝ่าย)</b> 📢\n\n📄 <b>เรื่อง:</b> %s\n🔖 <b>เลขรับ:</b> %s\n📌 <b>สถานะ:</b> มอบหมายให้หัวหน้างาน\n\n🔗 <b>เปิดเอกสารได้ที่ลิงก์ด้านล่าง:</b>\n%s",
+				
+				// 1. สร้างข้อความรายละเอียดหลัก (จะถูกใช้เป็น Caption ใต้ไฟล์)
+				msg := fmt.Sprintf("📢 <b>งานเข้าใหม่ (จากธุรการฝ่าย)</b> 📢\n\n📄 <b>เรื่อง:</b> %s\n🔖 <b>เลขรับ:</b> %s\n📌 <b>สถานะ:</b> มอบหมายให้หัวหน้างาน\n\n🔗 <b>เปิดระบบบนเว็บได้ที่:</b>\n%s",
 					doc.Subject, doc.ReceiveNo, docLink)
-				s.notifier.SendMessage(headUser.TelegramChatID, msg)
+
+				// 2. แปลงเลขรับไม่ให้มีเครื่องหมายทับ (/) ป้องกันชื่อไฟล์พัง
+				cleanReceiveNo := strings.ReplaceAll(doc.ReceiveNo, "/", "_")
+				displayFilename := fmt.Sprintf("เอกสารเลขรับ_%s.pdf", cleanReceiveNo)
+
+				// 3. ส่งไฟล์ + ข้อความบรรยายยาวๆ ไปในคำสั่งเดียว
+				// (Telegram จะนำไฟล์ขึ้นก่อน แล้วเอา msg ไปไว้ด้านล่างของไฟล์)
+				s.notifier.SendDocument(headUser.TelegramChatID, msg, doc.FilePath, displayFilename)
 			}
 		}
 	}
