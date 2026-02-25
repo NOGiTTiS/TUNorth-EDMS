@@ -364,14 +364,14 @@ export default function DocumentDetailPage({
           {/* FLOW 1: ผู้อำนวยการ (เกษียร) */}
           {user?.role === "director" &&
             document.status === "pending_director" && (
-              <Card className="border-theme-main-light shadow-md">
-                <CardHeader className="bg-theme-main-light pb-3 border-b border-theme-main-light">
-                  <CardTitle className="text-lg text-theme-main flex items-center gap-2">
-                    <PenTool className="h-5 w-5" /> เกษียรสั่งการ (ผอ.)
+              <Card>
+                <CardHeader className="bg-slate-50/50 border-b">
+                  <CardTitle className="text-lg text-theme-main">
+                    เกษียรสั่งการ (ผอ.)
                   </CardTitle>
                 </CardHeader>
                 <CardContent className="pt-4 space-y-6">
-                  <div className="flex flex-col gap-3">
+                  <div className="flex flex-col gap-3 pt-2">
                     {[
                       "ทราบ",
                       "อนุมัติ/อนุญาต",
@@ -395,29 +395,27 @@ export default function DocumentDetailPage({
                   </div>
                   <Separator />
                   <div className="space-y-2">
-                    <Label className="text-sm font-semibold text-pink-700">
-                      ข้อความสั่งการเพิ่มเติม
-                    </Label>
+                    <Label className="text-sm">ข้อความสั่งการเพิ่มเติม</Label>
                     <Textarea
                       placeholder="พิมพ์บันทึกข้อความ..."
-                      className="min-h-[80px] text-sm bg-slate-50 border-theme-main-light focus-visible:ring-theme-main"
+                      className="min-h-[80px] text-sm bg-white"
                       value={comment}
                       onChange={(e) => setComment(e.target.value)}
                     />
                   </div>
                   <div className="space-y-2">
-                    <Label className="text-theme-dark font-bold flex justify-between">
-                      ลงนามเกษียรหนังสือ
+                    <div className="flex justify-between items-center">
+                      <Label className="text-sm">ลงนามเกษียรหนังสือ</Label>
                       <Button
                         variant="ghost"
                         size="sm"
                         onClick={() => sigPad.current?.clear()}
-                        className="h-6 text-[10px] text-slate-400 hover:text-red-500"
+                        className="h-7 text-[10px] text-slate-400 hover:text-red-500"
                       >
                         <RotateCcw className="h-3 w-3 mr-1" /> ล้าง
                       </Button>
-                    </Label>
-                    <div className="rounded-lg border-2 border-dashed border-theme-main-light bg-white w-full h-[150px]">
+                    </div>
+                    <div className="rounded-lg border-2 border-dashed border-theme-main-light bg-white w-full h-[150px] overflow-hidden">
                       <SignatureCanvas
                         ref={sigPad}
                         penColor="blue"
@@ -434,7 +432,7 @@ export default function DocumentDetailPage({
                     </div>
                   </div>
                   <Button
-                    className="w-full bg-theme-main hover:bg-theme-main h-12 text-md shadow-lg shadow-theme-main/20"
+                    className="w-full bg-theme-main hover:bg-theme-main/90 h-11"
                     onClick={handleKasien}
                     disabled={isSubmitting}
                   >
@@ -447,21 +445,21 @@ export default function DocumentDetailPage({
           {/* FLOW 2: ธุรการกลาง (ส่งต่อ) */}
           {user?.role === "admin_central" &&
             document.status === "director_signed" && (
-              <Card className="border-theme-main-light shadow-md">
-                <CardHeader className="bg-theme-main-light pb-3 border-b border-theme-main-light">
-                  <CardTitle className="text-lg text-theme-main flex items-center gap-2">
-                    <Share2 className="h-5 w-5" /> ส่งต่อหนังสือ
+              <Card>
+                <CardHeader className="bg-slate-50/50 border-b">
+                  <CardTitle className="text-lg text-theme-main">
+                    แจ้งฝ่ายที่เกี่ยวข้อง
                   </CardTitle>
                 </CardHeader>
                 <CardContent className="pt-4 space-y-4">
-                  <div className="bg-yellow-50 p-3 rounded border border-yellow-200 text-xs text-yellow-800">
-                    ผอ. ลงนามแล้ว กรุณาเลือกฝ่ายเพื่อส่งต่อแจ้งเตือน
+                  <div className="bg-theme-main/5 p-3 rounded border border-theme-main-light/30 text-xs text-theme-main">
+                    ผอ. ลงนามสั่งการแล้ว กรุณาเลือกฝ่ายเพื่อส่งต่อ
                   </div>
-                  <div className="grid grid-cols-1 gap-1 border p-3 rounded bg-slate-50 max-h-[250px] overflow-y-auto">
+                  <div className="grid grid-cols-1 gap-1 border p-3 rounded bg-slate-50/50 max-h-[300px] overflow-y-auto">
                     {departments.map((dept) => (
                       <div
                         key={dept.ID}
-                        className="flex items-center space-x-3 p-2 hover:bg-white rounded transition-colors border border-transparent"
+                        className="flex items-center space-x-3 p-2 hover:bg-white/80 rounded transition-colors"
                       >
                         <Checkbox
                           id={`dept-${dept.ID}`}
@@ -484,11 +482,11 @@ export default function DocumentDetailPage({
                     ))}
                   </div>
                   <Button
-                    className="w-full bg-theme-main hover:bg-theme-main/90 h-12"
+                    className="w-full bg-theme-main hover:bg-theme-main/90 h-11"
                     onClick={handleDistribute}
                     disabled={isSubmitting}
                   >
-                    {isSubmitting ? "กำลังส่ง..." : "ยืนยันการส่งต่อ"}
+                    {isSubmitting ? "กำลังส่ง..." : "แจ้งฝ่ายที่เกี่ยวข้อง"}
                   </Button>
                 </CardContent>
               </Card>
@@ -496,20 +494,19 @@ export default function DocumentDetailPage({
 
           {/* FLOW 3: ธุรการฝ่าย (เสนอ รองฯ) */}
           {user?.role === "admin_dept" && document.status === "distributed" && (
-            <Card className="border-theme-main-light shadow-md">
-              <CardHeader className="bg-theme-main-light pb-3 border-b border-theme-main-light">
-                <CardTitle className="text-lg text-theme-main flex items-center gap-2">
-                  <UserCheck className="h-5 w-5" /> ลงรับและเสนอฝ่าย
+            <Card>
+              <CardHeader className="bg-slate-50/50 border-b">
+                <CardTitle className="text-lg text-theme-main">
+                  ลงรับและเสนอฝ่าย
                 </CardTitle>
               </CardHeader>
-              <CardContent className="pt-4 space-y-4">
-                <div className="bg-blue-50 p-3 rounded border border-blue-100 text-xs text-blue-800">
+              <CardContent className="pt-6 space-y-5">
+                <div className="bg-blue-50/50 p-3 rounded border border-blue-100/50 text-xs text-blue-800">
                   <strong>ระเบียบงานสารบรรณ:</strong> ระบบจะประทับตรา
-                  "ลงรับฝ่าย" ที่มุมซ้ายบนของเอกสาร
+                  "ลงรับฝ่าย" ที่มุมซ้ายบนของเอกสารอัตโนมัติ
                 </div>
-                {/* ลบกล่องข้อความ (Textarea) ออกแล้ว */}
                 <Button
-                  className="w-full bg-theme-main hover:bg-theme-main/90 h-12 text-md shadow-lg shadow-theme-main/20"
+                  className="w-full bg-theme-main hover:bg-theme-main/90 h-11"
                   onClick={handleForwardToDeputy}
                   disabled={isSubmitting}
                 >
@@ -526,38 +523,35 @@ export default function DocumentDetailPage({
 
           {/* FLOW 4: รองผู้อำนวยการ (เกษียร) */}
           {user?.role === "deputy" && document.status === "pending_deputy" && (
-            <Card className="border-theme-main-light shadow-md">
-              <CardHeader className="bg-theme-main-light pb-3 border-b border-theme-main-light">
-                <CardTitle className="text-lg text-theme-main flex items-center gap-2">
-                  <PenTool className="h-5 w-5" /> เกษียรสั่งการ (รองฯ)
+            <Card>
+              <CardHeader className="bg-slate-50/50 border-b">
+                <CardTitle className="text-lg text-theme-main">
+                  เกษียรสั่งการ (รองฯ)
                 </CardTitle>
               </CardHeader>
-              <CardContent className="pt-4 space-y-6">
-                {/* ลบกลุ่ม Checkbox ออกแล้ว เหลือแค่ข้อความสั่งการ */}
+              <CardContent className="pt-6 space-y-6">
                 <div className="space-y-2">
-                  <Label className="text-sm font-semibold">
-                    ข้อความสั่งการ
-                  </Label>
+                  <Label className="text-sm">ข้อความสั่งการ</Label>
                   <Textarea
                     placeholder="พิมพ์บันทึกข้อความ (เช่น ทราบ/มอบหมายงาน)..."
-                    className="min-h-[80px] text-sm bg-slate-50"
+                    className="min-h-[80px] text-sm bg-white"
                     value={comment}
                     onChange={(e) => setComment(e.target.value)}
                   />
                 </div>
-                <div className="space-y-2">
-                  <Label className="text-theme-main font-bold flex justify-between">
-                    ลงนามเกษียรหนังสือ
+                <div className="space-y-3">
+                  <div className="flex justify-between items-center">
+                    <Label className="text-sm">ลงนามเกษียรหนังสือ</Label>
                     <Button
                       variant="ghost"
                       size="sm"
                       onClick={() => sigPad.current?.clear()}
-                      className="h-6 text-[10px]"
+                      className="h-7 text-[10px] text-slate-400 hover:text-red-500"
                     >
                       <RotateCcw className="h-3 w-3 mr-1" /> ล้าง
                     </Button>
-                  </Label>
-                  <div className="rounded-lg border-2 border-theme-main bg-white w-full h-[150px]">
+                  </div>
+                  <div className="rounded-lg border-2 border-dashed border-theme-main-light bg-white w-full h-[150px] overflow-hidden">
                     <SignatureCanvas
                       ref={sigPad}
                       penColor="blue"
@@ -574,7 +568,7 @@ export default function DocumentDetailPage({
                   </div>
                 </div>
                 <Button
-                  className="w-full bg-theme-main hover:bg-theme-main/80 h-12 text-md"
+                  className="w-full bg-theme-main hover:bg-theme-main/90 h-11"
                   onClick={handleDeputySign}
                   disabled={isSubmitting}
                 >
@@ -587,18 +581,18 @@ export default function DocumentDetailPage({
           {/* FLOW 5: ธุรการฝ่าย (ส่งหัวหน้างาน) */}
           {user?.role === "admin_dept" &&
             document.status === "deputy_signed" && (
-              <Card className="border-theme-main-light shadow-md">
-                <CardHeader className="bg-theme-main-light pb-3 border-b border-theme-main-light">
-                  <CardTitle className="text-lg text-theme-main flex items-center gap-2">
-                    <Share2 className="h-5 w-5" /> ส่งต่อหัวหน้างาน
+              <Card>
+                <CardHeader className="bg-slate-50/50 border-b">
+                  <CardTitle className="text-lg text-theme-main">
+                    ส่งต่อแจ้งหัวหน้างาน
                   </CardTitle>
                 </CardHeader>
-                <CardContent className="pt-4 space-y-4">
-                  <div className="space-y-2">
-                    <Label className="font-semibold">
+                <CardContent className="pt-6 space-y-5">
+                  <div className="space-y-3">
+                    <Label className="text-sm">
                       เลือกหัวหน้างาน (ในฝ่ายของท่าน)
                     </Label>
-                    <div className="grid grid-cols-1 gap-1 border p-3 rounded bg-slate-50 max-h-[250px] overflow-y-auto">
+                    <div className="grid grid-cols-1 gap-1 border p-3 rounded bg-slate-50/50 max-h-[300px] overflow-y-auto">
                       {headUnits.length === 0 ? (
                         <p className="text-sm text-slate-400 text-center py-4">
                           ไม่พบรายชื่อหัวหน้างานในฝ่ายนี้
@@ -607,7 +601,7 @@ export default function DocumentDetailPage({
                         headUnits.map((h) => (
                           <div
                             key={h.ID}
-                            className="flex items-center space-x-3 p-2 hover:bg-white rounded border border-transparent"
+                            className="flex items-center space-x-3 p-2 hover:bg-white/80 rounded transition-colors"
                           >
                             <Checkbox
                               id={`head-${h.ID}`}
@@ -632,11 +626,11 @@ export default function DocumentDetailPage({
                     </div>
                   </div>
                   <Button
-                    className="w-full bg-theme-main hover:bg-theme-main/80 h-12"
+                    className="w-full bg-theme-main hover:bg-theme-main/90 h-11"
                     onClick={handleForwardToHead}
                     disabled={isSubmitting}
                   >
-                    {isSubmitting ? "กำลังส่ง..." : "ยืนยันการส่งต่อ"}
+                    {isSubmitting ? "กำลังส่ง..." : "แจ้งหัวหน้างาน"}
                   </Button>
                 </CardContent>
               </Card>
@@ -644,20 +638,20 @@ export default function DocumentDetailPage({
 
           {/* FLOW 6: หัวหน้างาน (รับทราบ/จบงาน) */}
           {user?.role === "head" && document.status === "sent_to_head" && (
-            <Card className="border-theme-main-light shadow-md">
-              <CardHeader className="bg-theme-main-light pb-3 border-b border-theme-main-light">
-                <CardTitle className="text-lg text-theme-main flex items-center gap-2">
-                  <UserCheck className="h-5 w-5" /> ส่วนของหัวหน้างาน
+            <Card>
+              <CardHeader className="bg-slate-50/50 border-b">
+                <CardTitle className="text-lg text-theme-main">
+                  ส่วนของหัวหน้างาน
                 </CardTitle>
               </CardHeader>
-              <CardContent className="pt-4">
-                <p className="text-sm text-slate-600 mb-4">
+              <CardContent className="pt-6 space-y-4">
+                <p className="text-sm text-slate-600">
                   โปรดอ่านเอกสารและกดรับทราบเพื่อสิ้นสุดกระบวนการในระบบ
                 </p>
                 <Button
                   onClick={handleHeadComplete}
                   disabled={isSubmitting}
-                  className="w-full bg-theme-main hover:bg-theme-main/80 h-12 text-md shadow-lg shadow-green-100"
+                  className="w-full bg-theme-main hover:bg-theme-main/90 h-11"
                 >
                   {isSubmitting ? "กำลังบันทึก..." : "รับทราบ / ดำเนินการแล้ว"}
                 </Button>
@@ -667,16 +661,19 @@ export default function DocumentDetailPage({
 
           {/* สถานะ Completed (จบกระบวนการ) */}
           {document.status === "completed" && (
-            <Card className="border-theme-main-light shadow-md">
-              <CardHeader className="bg-theme-main-light pb-3 border-b border-theme-main-light">
-                <CardTitle className="text-lg text-theme-main flex items-center gap-2">
-                  <CheckCircle2 className="h-5 w-5" /> ดำเนินการเสร็จสิ้นสมบูรณ์
+            <Card>
+              <CardHeader className="bg-slate-50/50 border-b">
+                <CardTitle className="text-lg text-theme-main">
+                  ดำเนินการเสร็จสิ้น
                 </CardTitle>
               </CardHeader>
-              <CardContent className="pt-4">
-                <p className="text-xs text-theme-dark">
-                  หนังสือถึงมือผู้ปฏิบัติงานและรับทราบเรียบร้อยแล้ว
-                </p>
+              <CardContent className="pt-6">
+                <div className="flex flex-col items-center gap-3 py-4 text-center">
+                  <CheckCircle2 className="w-12 h-12 text-green-500" />
+                  <p className="text-sm text-slate-600">
+                    หนังสือถึงมือผู้ปฏิบัติงานและรับทราบเรียบร้อยแล้ว
+                  </p>
+                </div>
               </CardContent>
             </Card>
           )}

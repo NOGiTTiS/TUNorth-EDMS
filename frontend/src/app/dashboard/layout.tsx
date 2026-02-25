@@ -24,7 +24,6 @@ import {
 import { cn } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
 
-
 export default function DashboardLayout({
   children,
 }: {
@@ -55,8 +54,12 @@ export default function DashboardLayout({
           { name: "จัดการฝ่าย", icon: Network, href: "/dashboard/departments" },
           { name: "จัดการผู้ใช้", icon: Users, href: "/dashboard/users" },
           { name: "ตั้งค่าระบบ", icon: Settings, href: "/dashboard/settings" },
-          { name: 'รายงานสรุป', icon: BarChartBig, href: '/dashboard/reports' },
-          { name: 'สมุดทะเบียนรับ', icon: BookMarked, href: '/dashboard/reports/logbook' }
+          { name: "รายงานสรุป", icon: BarChartBig, href: "/dashboard/reports" },
+          {
+            name: "รายงานหนังสือรับ",
+            icon: BookMarked,
+            href: "/dashboard/reports/logbook",
+          },
         ]
       : []),
   ]
@@ -163,7 +166,7 @@ export default function DashboardLayout({
   )
 
   return (
-    <div className="flex h-screen bg-slate-50 dark:bg-slate-900 relative overflow-hidden">
+    <div className="flex h-screen print:h-auto bg-slate-50 dark:bg-slate-900 relative overflow-hidden print:overflow-visible">
       {/* Mobile Sidebar Overlay */}
       {isMenuOpen && (
         <div
@@ -175,7 +178,7 @@ export default function DashboardLayout({
       {/* Mobile Sidebar Drawer */}
       <aside
         className={cn(
-          "fixed top-0 left-0 bottom-0 w-72 bg-white z-50 transition-transform duration-300 md:hidden flex flex-col shadow-2xl",
+          "fixed top-0 left-0 bottom-0 w-72 bg-white z-50 transition-transform duration-300 md:hidden flex flex-col shadow-2xl print:hidden",
           isMenuOpen ? "translate-x-0" : "-translate-x-full",
         )}
       >
@@ -192,13 +195,13 @@ export default function DashboardLayout({
       </aside>
 
       {/* Desktop Sidebar */}
-      <aside className="w-64 bg-white dark:bg-slate-800 border-r shadow-sm hidden md:flex flex-col">
+      <aside className="w-64 bg-white dark:bg-slate-800 border-r shadow-sm hidden md:flex flex-col print:hidden">
         <SidebarContent />
       </aside>
 
       {/* Main Content */}
-      <main className="flex-1 overflow-y-auto bg-theme-grad">
-        <header className="h-16 bg-white/80 backdrop-blur-md border-b flex items-center justify-between px-6 md:hidden sticky top-0 z-30">
+      <main className="flex-1 overflow-y-auto print:overflow-visible bg-theme-grad print:bg-white">
+        <header className="h-16 bg-white/80 backdrop-blur-md border-b flex items-center justify-between px-6 md:hidden sticky top-0 z-30 print:hidden">
           <span className="font-bold text-theme-main truncate mr-4">
             {settings.system_name || "TUNorth EDMS"}
           </span>
@@ -210,7 +213,7 @@ export default function DashboardLayout({
             <Menu className="w-6 h-6 text-slate-600" />
           </Button>
         </header>
-        <div className="p-4 md:p-6">{children}</div>
+        <div className="p-4 md:p-6 print:p-0">{children}</div>
       </main>
     </div>
   )

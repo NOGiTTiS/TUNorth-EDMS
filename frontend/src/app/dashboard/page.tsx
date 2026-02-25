@@ -101,12 +101,12 @@ export default function DashboardOverview() {
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         {/* Card 1: งานค้าง */}
-        <Card className="shadow-sm border-l-4 border-l-yellow-500 bg-white">
+        <Card className="shadow-sm border-l-4 border-l-(--theme-main) bg-white">
           <CardHeader className="flex flex-row items-center justify-between pb-2">
             <CardTitle className="text-sm font-medium text-slate-600">
               งานที่รอดำเนินการ
             </CardTitle>
-            <Clock className="h-4 w-4 text-yellow-500" />
+            <Clock className="h-4 w-4 text-(--theme-main)" />
           </CardHeader>
           <CardContent>
             {isLoading ? (
@@ -121,12 +121,12 @@ export default function DashboardOverview() {
         </Card>
 
         {/* Card 2: สถิติรวมเดือนนี้ */}
-        <Card className="shadow-sm border-l-4 border-l-blue-500 bg-white">
+        <Card className="shadow-sm border-l-4 border-l-(--theme-main) bg-white">
           <CardHeader className="flex flex-row items-center justify-between pb-2">
             <CardTitle className="text-sm font-medium text-slate-600">
               หนังสือเข้าทั้งหมด (เดือนนี้)
             </CardTitle>
-            <FileStack className="h-4 w-4 text-blue-500" />
+            <FileStack className="h-4 w-4 text-(--theme-main)" />
           </CardHeader>
           <CardContent>
             {isLoading ? (
@@ -144,10 +144,11 @@ export default function DashboardOverview() {
       </div>
 
       {/* --- ส่วนกราฟ (วางไว้ด้านล่าง) --- */}
-      <Card className="shadow-sm border-t-4 border-t-pink-500">
+      <Card className="shadow-sm border-t-4" style={{ borderTopColor: 'var(--theme-main)' }}>
         <CardHeader>
           <CardTitle className="flex items-center gap-2 text-slate-800">
-            <BarChart3 className="h-5 w-5 text-pink-500" />
+            {/* เปลี่ยน text-pink-500 เป็น class text-theme-main ที่เราเขียนไว้ใน Provider */}
+            <BarChart3 className="h-5 w-5 text-theme-main" />
             สถิติปริมาณหนังสือเข้า (รายเดือน)
           </CardTitle>
         </CardHeader>
@@ -188,14 +189,10 @@ export default function DashboardOverview() {
                     }}
                     cursor={{ fill: "#f1f5f9" }}
                   />
-                  <Bar
-                    dataKey="count"
-                    name="จำนวนหนังสือ"
-                    radius={[4, 4, 0, 0]}
-                    barSize={40}
-                  >
+                  <Bar dataKey="count" name="จำนวนหนังสือ" radius={[4, 4, 0, 0]} barSize={40}>
                     {chartData.map((entry, index) => (
-                      <Cell key={`cell-${index}`} fill="#db2777" /> // สีชมพู (หรือเปลี่ยนเป็นสี Theme ได้)
+                      // เปลี่ยนจาก "#db2777" เป็น "var(--theme-main)"
+                      <Cell key={`cell-${index}`} fill="var(--theme-main)" />
                     ))}
                   </Bar>
                 </BarChart>
