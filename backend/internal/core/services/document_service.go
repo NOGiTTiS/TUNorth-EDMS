@@ -262,25 +262,26 @@ func (s *documentService) StampAndSign(docID uint, adminID uint, deptIDs []uint,
 
 	err = s.repo.Update(doc)
 
-	// ==========================================
-	// 1. แจ้งเตือน Telegram -> ผอ. (รอ ผอ. สั่งการ)
-	// ==========================================
+	// ----------------------------------------------------
+	// แจ้งเตือน Telegram Step 1: แจ้ง ผอ. (รอสั่งการ)
+	// ----------------------------------------------------
 	if s.canSendNotify() {
 		directors, _ := s.userRepo.FindByRole(string(domain.RoleDirector))
-
-		// 1. สร้าง URL ลิงก์ (ป้องกัน Error undefined)
 		frontendURL := os.Getenv("FRONTEND_URL")
-		if frontendURL == "" {
-			frontendURL = "http://localhost:3000"
-		}
+		if frontendURL == "" { frontendURL = "http://localhost:3000" }
 		docLink := fmt.Sprintf("%s/dashboard/documents/%d", frontendURL, doc.ID)
 
-		// 2. วนลูปส่งหา ผอ. ทุกคนที่มี Chat ID
+		// เตรียมชื่อไฟล์ภาษาไทย
+		cleanNo := strings.ReplaceAll(doc.ReceiveNo, "/", "_")
+		displayFilename := fmt.Sprintf("เอกสารเลขรับ_%s.pdf", cleanNo)
+
 		for _, dir := range directors {
 			if dir.TelegramChatID != "" {
-				msg := fmt.Sprintf("⚠️ <b>หนังสือเข้าใหม่ (รอสั่งการ)</b> ⚠️\n\n📄 <b>เรื่อง:</b> %s\n🔖 <b>เลขรับ:</b> %s\n👤 <b>จาก:</b> %s\n📌 <b>สถานะ:</b> รอผู้อำนวยการสั่งการ\n\n🔗 <b>เปิดเอกสารได้ที่ลิงก์ด้านล่าง:</b>\n%s",
+				msg := fmt.Sprintf("⚠️ <b>หนังสือเข้าใหม่ (รอสั่งการ)</b> ⚠️\n\n📄 <b>เรื่อง:</b> %s\n🔖 <b>เลขรับ:</b> %s\n👤 <b>จาก:</b> %s\n📌 <b>สถานะ:</b> รอผู้อำนวยการสั่งการ\n\n🔗 <b>เปิดระบบบนเว็บได้ที่:</b>\n%s", 
 					doc.Subject, doc.ReceiveNo, doc.From, docLink)
-				s.notifier.SendMessage(dir.TelegramChatID, msg)
+				
+				// ส่งไฟล์แทนข้อความ
+				s.notifier.SendDocument(dir.TelegramChatID, msg, doc.FilePath, displayFilename)
 			}
 		}
 	}
@@ -454,25 +455,24 @@ func (s *documentService) KasienDocument(docID uint, userID uint, req ports.Rout
 	s.repo.CreateRoute(&route)
 	err = s.repo.UpdateStatus(doc.ID, domain.StatusDirectorSigned)
 
-	// ==========================================
-	// 2. แจ้งเตือน Telegram -> ธุรการกลาง
-	// ==========================================
+	// ----------------------------------------------------
+	// แจ้งเตือน Telegram Step 2: แจ้งธุรการ (ผอ. สั่งแล้ว)
+	// ----------------------------------------------------
 	if s.canSendNotify() {
 		admins, _ := s.userRepo.FindByRole(string(domain.RoleAdminCentral))
-
-		// 1. สร้าง URL ลิงก์
 		frontendURL := os.Getenv("FRONTEND_URL")
-		if frontendURL == "" {
-			frontendURL = "http://localhost:3000"
-		}
+		if frontendURL == "" { frontendURL = "http://localhost:3000" }
 		docLink := fmt.Sprintf("%s/dashboard/documents/%d", frontendURL, doc.ID)
 
-		// 2. วนลูปส่งหาแอดมินทุกคน
+		cleanNo := strings.ReplaceAll(doc.ReceiveNo, "/", "_")
+		displayFilename := fmt.Sprintf("เอกสารเลขรับ_%s.pdf", cleanNo)
+
 		for _, admin := range admins {
 			if admin.TelegramChatID != "" {
-				msg := fmt.Sprintf("✅ <b>ผู้อำนวยการสั่งการแล้ว</b> ✅\n\n📄 <b>เรื่อง:</b> %s\n🔖 <b>เลขรับ:</b> %s\n👤 <b>จาก:</b> %s\n📌 <b>สถานะ:</b> รอธุรการส่งต่อ\n\n🔗 <b>เปิดเอกสารได้ที่ลิงก์ด้านล่าง:</b>\n%s",
+				msg := fmt.Sprintf("✅ <b>ผู้อำนวยการสั่งการแล้ว</b> ✅\n\n📄 <b>เรื่อง:</b> %s\n🔖 <b>เลขรับ:</b> %s\n👤 <b>จาก:</b> %s\n📌 <b>สถานะ:</b> รอธุรการแจกจ่าย\n\n🔗 <b>เปิดระบบบนเว็บได้ที่:</b>\n%s", 
 					doc.Subject, doc.ReceiveNo, doc.From, docLink)
-				s.notifier.SendMessage(admin.TelegramChatID, msg)
+				
+				s.notifier.SendDocument(admin.TelegramChatID, msg, doc.FilePath, displayFilename)
 			}
 		}
 	}
@@ -551,20 +551,22 @@ func (s *documentService) DistributeDocument(docID uint, adminID uint, deptIDs [
 
 		// 3.2 ส่งแจ้งเตือน Telegram
 		if s.canSendNotify() {
-			// ข้อความแจ้งเตือน (รูปแบบ HTML)
-			msg := fmt.Sprintf("📢 <b>หนังสือเข้าใหม่ถึงฝ่ายท่าน (%s)</b> 📢\n\n📄 <b>เรื่อง:</b> %s\n🔖 <b>เลขรับ:</b> %s\n👤 <b>จาก:</b> %s\n📌 <b>สถานะ:</b> ส่งต่อไปยังฝ่ายแล้ว\n\n🔗 <b>เปิดเอกสารได้ที่ลิงก์ด้านล่าง:</b>\n%s",
+			msg := fmt.Sprintf("📢 <b>หนังสือเข้าใหม่ถึงฝ่ายท่าน (%s)</b> 📢\n\n📄 <b>เรื่อง:</b> %s\n🔖 <b>เลขรับ:</b> %s\n👤 <b>จาก:</b> %s\n📌 <b>สถานะ:</b> แจกจ่ายไปยังฝ่ายแล้ว\n\n🔗 <b>เปิดระบบบนเว็บได้ที่:</b>\n%s", 
 				dept.Name, doc.Subject, doc.ReceiveNo, doc.From, docLink)
 
-			// กรณีที่ 1: ส่งเข้า Chat ID ของ "ฝ่าย" (เช่น กลุ่มไลน์/กลุ่ม Telegram ของฝ่าย)
+			cleanNo := strings.ReplaceAll(doc.ReceiveNo, "/", "_")
+			displayFilename := fmt.Sprintf("เอกสารเลขรับ_%s.pdf", cleanNo)
+
+			// 1. ส่งเข้า Chat ID ของฝ่าย (กลุ่ม)
 			if dept.TelegramChatID != "" {
-				s.notifier.SendMessage(dept.TelegramChatID, msg)
+				s.notifier.SendDocument(dept.TelegramChatID, msg, doc.FilePath, displayFilename)
 			}
 
-			// กรณีที่ 2: ส่งหา "ธุรการฝ่าย (Admin Dept)" ทุกคนที่สังกัดฝ่ายนี้แบบรายบุคคล
+			// 2. ส่งหาธุรการฝ่ายรายบุคคล
 			deptAdmins, _ := s.userRepo.FindByDeptAndRole(dept.ID, string(domain.RoleAdminDept))
 			for _, admin := range deptAdmins {
 				if admin.TelegramChatID != "" {
-					s.notifier.SendMessage(admin.TelegramChatID, msg)
+					s.notifier.SendDocument(admin.TelegramChatID, msg, doc.FilePath, displayFilename)
 				}
 			}
 		}
@@ -731,24 +733,25 @@ func (s *documentService) ForwardToDeputy(docID uint, senderID uint, note string
 	}
 	s.repo.CreateRoute(&route)
 
-	// =========================================================
-	// 3. แจ้งเตือน Telegram ไปยัง รอง ผอ.
-	// =========================================================
+	// ----------------------------------------------------
+	// แจ้งเตือน Telegram Step 4: แจ้ง รองฯ
+	// ----------------------------------------------------
 	if s.canSendNotify() {
 		deputies, _ := s.userRepo.FindByDeptAndRole(*sender.DepartmentID, string(domain.RoleDeputy))
-
-		// สร้างลิงก์
+		
 		frontendURL := os.Getenv("FRONTEND_URL")
-		if frontendURL == "" {
-			frontendURL = "http://localhost:3000"
-		}
+		if frontendURL == "" { frontendURL = "http://localhost:3000" }
 		docLink := fmt.Sprintf("%s/dashboard/documents/%d", frontendURL, doc.ID)
+
+		cleanNo := strings.ReplaceAll(doc.ReceiveNo, "/", "_")
+		displayFilename := fmt.Sprintf("เอกสารเลขรับ_%s.pdf", cleanNo)
 
 		for _, dep := range deputies {
 			if dep.TelegramChatID != "" {
-				msg := fmt.Sprintf("⚠️ <b>หนังสือเสนอพิจารณา (ระดับฝ่าย)</b> ⚠️\n\n📄 <b>เรื่อง:</b> %s\n🔖 <b>เลขรับ:</b> %s\n👤 <b>จาก:</b> %s\n📌 <b>สถานะ:</b> รอรองผู้อำนวยการฝ่ายสั่งการ\n\n🔗 <b>เปิดเอกสารได้ที่ลิงก์ด้านล่าง:</b>\n%s",
-					doc.Subject, doc.ReceiveNo, doc.From, docLink)
-				s.notifier.SendMessage(dep.TelegramChatID, msg)
+				msg := fmt.Sprintf("⚠️ <b>มีหนังสือเสนอพิจารณา (ระดับฝ่าย)</b>\n\n📄 <b>เรื่อง:</b> %s\n🔖 <b>เลขรับ:</b> %s\n📌 <b>สถานะ:</b> รอรองผู้อำนวยการฝ่ายสั่งการ\n\n🔗 <b>เปิดระบบบนเว็บได้ที่:</b>\n%s", 
+					doc.Subject, doc.ReceiveNo, docLink)
+				
+				s.notifier.SendDocument(dep.TelegramChatID, msg, doc.FilePath, displayFilename)
 			}
 		}
 	}
@@ -888,16 +891,29 @@ func (s *documentService) DeputySign(docID uint, userID uint, req ports.RouteReq
 	}
 	s.repo.CreateRoute(&route)
 
+	// ----------------------------------------------------
+	// แจ้งเตือน Telegram Step 5: แจ้ง ธุรการฝ่าย (รองฯ เซ็นแล้ว)
+	// ----------------------------------------------------
 	if s.canSendNotify() {
 		admins, _ := s.userRepo.FindByDeptAndRole(*user.DepartmentID, string(domain.RoleAdminDept))
+		
+		frontendURL := os.Getenv("FRONTEND_URL")
+		if frontendURL == "" { frontendURL = "http://localhost:3000" }
+		docLink := fmt.Sprintf("%s/dashboard/documents/%d", frontendURL, doc.ID)
+
+		cleanNo := strings.ReplaceAll(doc.ReceiveNo, "/", "_")
+		displayFilename := fmt.Sprintf("เอกสารเลขรับ_%s.pdf", cleanNo)
+
 		for _, admin := range admins {
 			if admin.TelegramChatID != "" {
-				frontendURL := os.Getenv("FRONTEND_URL")
-				docLink := fmt.Sprintf("%s/dashboard/documents/%d", frontendURL, doc.ID)
-				s.notifier.SendMessage(admin.TelegramChatID, fmt.Sprintf("✅ <b>รองฯ ฝ่ายสั่งการแล้ว</b>\n📄 เรื่อง: %s\n🔗 <a href=\"%s\">คลิกเพื่อเปิดเอกสาร</a>", doc.Subject, docLink))
+				msg := fmt.Sprintf("✅ <b>รองฯ ฝ่ายสั่งการแล้ว</b>\n\n📄 <b>เรื่อง:</b> %s\n🔖 <b>เลขรับ:</b> %s\n📌 <b>สถานะ:</b> รองฯ สั่งการเรียบร้อย\n\n🔗 <b>เปิดระบบบนเว็บได้ที่:</b>\n%s", 
+					doc.Subject, doc.ReceiveNo, docLink)
+				
+				s.notifier.SendDocument(admin.TelegramChatID, msg, doc.FilePath, displayFilename)
 			}
 		}
 	}
+
 	return s.repo.UpdateStatus(doc.ID, domain.StatusDeputySigned)
 }
 
@@ -1031,4 +1047,19 @@ func (s *documentService) GetReportStats(start, end string) (*ports.ReportStats,
 
 func (s *documentService) GetLogbookReport(month int, year int) ([]domain.Document, error) {
 	return s.repo.GetLogbookReport(month, year)
+}
+
+func (s *documentService) GetDeptReportStats(userID uint, start, end string) (*ports.DeptReportStats, error) {
+	user, err := s.userRepo.FindByID(userID)
+	if err != nil { return nil, err }
+	if user.DepartmentID == nil { return nil, fmt.Errorf("user has no department") }
+
+	// วันที่ Default
+	if start == "" || end == "" {
+		now := time.Now()
+		start = time.Date(now.Year(), now.Month(), 1, 0, 0, 0, 0, time.Local).Format("2006-01-02")
+		end = time.Date(now.Year(), now.Month()+1, 0, 0, 0, 0, 0, time.Local).Format("2006-01-02")
+	}
+
+	return s.repo.GetDeptReportStats(*user.DepartmentID, start, end)
 }

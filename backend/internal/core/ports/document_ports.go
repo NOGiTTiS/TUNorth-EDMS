@@ -48,6 +48,12 @@ type ReportStats struct {
 	TopFiveSender []ChartData      `json:"top_five_sender"` // หน่วยงานภายนอกที่ส่งมาบ่อยสุด
 }
 
+type DeptReportStats struct {
+	TotalReceived int64       `json:"total_received"` // รับเข้าฝ่ายทั้งหมด
+	ByStatus      []ChartData `json:"by_status"`      // สถานะหนังสือในฝ่าย
+	ByHead        []ChartData `json:"by_head"`        // ภาระงานแยกตามหัวหน้างาน
+}
+
 type ChartData struct {
 	Name  string `json:"name"`
 	Value int    `json:"value"`
@@ -73,6 +79,7 @@ type DocumentRepository interface {
 	GetDashboardStats(userID uint, role string, deptID *uint) (*DashboardStats, error)
 	GetReportStats(start, end string) (*ReportStats, error)
 	GetLogbookReport(month int, year int) ([]domain.Document, error)
+	GetDeptReportStats(deptID uint, start, end string) (*DeptReportStats, error) 
 }
 
 type DocumentService interface {
@@ -97,6 +104,7 @@ type DocumentService interface {
 	GetDashboardStats(userID uint) (*DashboardStats, error)
 	GetReportStats(start, end string) (*ReportStats, error)
 	GetLogbookReport(month int, year int) ([]domain.Document, error)
+	GetDeptReportStats(userID uint, start, end string) (*DeptReportStats, error)
 }
 
 // สร้าง Struct สำหรับรับค่าการแก้ไขข้อมูล

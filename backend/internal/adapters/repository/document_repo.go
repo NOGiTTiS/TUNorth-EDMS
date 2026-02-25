@@ -184,10 +184,13 @@ func (r *documentRepo) GetDashboardStats(userID uint, role string, deptID *uint)
 		pendingQuery.Where("status = ?", domain.StatusDirectorSigned).Count(&stats.PendingWorks)
 
 	case string(domain.RoleAdminDept):
-		// ธุรการฝ่าย: นับ "distributed" (ถึงฝ่ายแล้ว) + ต้องเป็นฝ่ายตัวเอง
+		// ธุรการฝ่าย: นับทั้ง "distributed" (รอเสนอรอง) และ "deputy_signed" (รอส่งหัวหน้า)
 		if deptID != nil {
 			pendingQuery.Joins("JOIN document_routes ON document_routes.doc_id = documents.id").
-				Where("documents.status = ? AND document_routes.receiver_dept_id = ?", domain.StatusDistributed, *deptID).
+				Where("documents.status IN (?, ?) AND document_routes.receiver_dept_id = ?", 
+					domain.StatusDistributed,    // สถานะที่ 1
+					domain.StatusDeputySigned,   // สถานะที่ 2 (เพิ่มอันนี้)
+					*deptID).
 				Group("documents.id").Count(&stats.PendingWorks)
 		}
 
@@ -280,4 +283,44 @@ func (r *documentRepo) GetLogbookReport(month int, year int) ([]domain.Document,
 		Find(&docs).Error
 
 	return docs, err
+}
+
+func (r *documentRepo) GetDeptReportStats(deptID uint, start, end string) (*ports.DeptReportStats, error) {
+	stats := &ports.DeptReportStats{}
+	startDate := start + " 00:00:00"
+	endDate := end + " 23:59:59"
+
+	// 1. จำนวนหนังสือที่รับเข้าฝ่ายทั้งหมดในช่วงเวลา
+	// ดูจาก Route ที่ receiver_dept_id = deptID
+	if err := r.db.Model(&domain.DocumentRoute{}).
+		Where("receiver_dept_id = ? AND created_at BETWEEN ? AND ?", deptID, startDate, endDate).
+		Count(&stats.TotalReceived).Error; err != nil {
+		return nil, err
+	}
+
+	// 2. แยกตามสถานะ (เฉพาะหนังสือที่อยู่ในฝ่ายนี้)
+	// Join กับ Document เพื่อดู status ปัจจุบัน
+	if err := r.db.Table("document_routes").
+		Select("documents.status as name, count(documents.id) as value").
+		Joins("JOIN documents ON documents.id = document_routes.doc_id").
+		Where("document_routes.receiver_dept_id = ? AND document_routes.created_at BETWEEN ? AND ?", deptID, startDate, endDate).
+		Group("documents.status").
+		Scan(&stats.ByStatus).Error; err != nil {
+		return nil, err
+	}
+
+	// 3. ภาระงานแยกตามหัวหน้างาน (ใครรับงานไปเยอะสุด)
+	// ดู Route ที่ sender เป็นคนในฝ่ายนี้ และ action = assigned (ส่งให้หัวหน้า)
+	// ต้อง Join กับ Users เพื่อเอาชื่อหัวหน้า (Receiver)
+	if err := r.db.Table("document_routes").
+		Select("users.full_name as name, count(*) as value").
+		Joins("JOIN users ON users.id = document_routes.receiver_id").
+		Where("users.department_id = ? AND document_routes.created_at BETWEEN ? AND ?", deptID, startDate, endDate).
+		Group("users.full_name").
+		Order("value desc").
+		Scan(&stats.ByHead).Error; err != nil {
+		return nil, err
+	}
+
+	return stats, nil
 }

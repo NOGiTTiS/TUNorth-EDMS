@@ -100,6 +100,7 @@ func main() {
 	// --- Route Report ---
 	v1.Get("/reports/summary", docHandler.GetReportStats)
 	v1.Get("/reports/logbook", docHandler.GetLogbookReport)
+	v1.Get("/reports/department", docHandler.GetDeptReportStats)
 
 	// --- Route Settings ---
 	v1.Get("/settings", settingHandler.GetSettings)

@@ -356,3 +356,16 @@ func (h *DocumentHandler) GetLogbookReport(c *fiber.Ctx) error {
 	}
 	return c.JSON(fiber.Map{"data": docs})
 }
+
+// GET /reports/department
+func (h *DocumentHandler) GetDeptReportStats(c *fiber.Ctx) error {
+	userID := getUserID(c)
+	start := c.Query("start_date")
+	end := c.Query("end_date")
+
+	stats, err := h.service.GetDeptReportStats(userID, start, end)
+	if err != nil {
+		return c.Status(500).JSON(fiber.Map{"error": err.Error()})
+	}
+	return c.JSON(fiber.Map{"data": stats})
+}
