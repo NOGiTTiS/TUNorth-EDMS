@@ -8,6 +8,8 @@ import (
 	"tunorth-edms-backend/internal/core/services"
 	"tunorth-edms-backend/pkg/database"
 
+	"tunorth-edms-backend/pkg/middleware"
+
 	"github.com/gofiber/fiber/v2"
 	"github.com/gofiber/fiber/v2/middleware/cors"
 	"github.com/gofiber/fiber/v2/middleware/logger"
@@ -25,14 +27,14 @@ func main() {
 	userRepo := repository.NewUserRepository(database.DB)
 	authService := services.NewAuthService(userRepo)
 	authHandler := handler.NewAuthHandler(authService)
-	
+
 	// --- เพิ่ม Settings ---
 	settingRepo := repository.NewSettingRepository(database.DB)
 	settingService := services.NewSettingService(settingRepo)
 	settingHandler := handler.NewSettingHandler(settingService)
 
 	// --- เพิ่ม Notification ---
-	notifyService := notification.NewTelegramService(settingRepo) 
+	notifyService := notification.NewTelegramService(settingRepo)
 
 	// --- เพิ่ม Document ---
 	docRepo := repository.NewDocumentRepository(database.DB)
@@ -43,7 +45,6 @@ func main() {
 	userService := services.NewUserService(userRepo)
 	userHandler := handler.NewUserHandler(userService)
 
-	
 	app := fiber.New()
 	app.Use(logger.New())
 	app.Use(cors.New(cors.Config{
@@ -57,21 +58,25 @@ func main() {
 	api := app.Group("/api")
 	v1 := api.Group("/v1")
 
-	// --- Route Auth ---
+	// --- Route Auth & Public ---
 	v1.Post("/login", authHandler.Login)
 	v1.Post("/register", userHandler.RegisterUser)
+	v1.Get("/settings", settingHandler.GetSettings) // Public settings for UI themes
 
-	v1.Get("/departments", docHandler.GetDepartments) 
-    v1.Get("/telegram/latest-id", settingHandler.GetLatestTelegramChatID) 
+	// --- Use JWT Middleware for all subsequent routes ---
+	v1.Use(middleware.AuthRequired())
+
+	v1.Get("/departments", docHandler.GetDepartments)
+	v1.Get("/telegram/latest-id", settingHandler.GetLatestTelegramChatID)
 
 	v1.Get("/dashboard/stats", docHandler.GetStats)
 
 	// --- Route Document ---
 	v1.Post("/documents", docHandler.RegisterDocument)
 	v1.Get("/documents", docHandler.GetDocuments)
-	
+
 	// !!! ย้ายบรรทัดนี้มาไว้ข้างบน !!!
-	v1.Get("/documents/next-no", docHandler.GetNextNumber) 
+	v1.Get("/documents/next-no", docHandler.GetNextNumber)
 
 	// Route ที่รับ ID ต้องอยู่ข้างล่างเสมอ
 	v1.Get("/documents/:id", docHandler.GetDocument)
@@ -103,7 +108,6 @@ func main() {
 	v1.Get("/reports/department", docHandler.GetDeptReportStats)
 
 	// --- Route Settings ---
-	v1.Get("/settings", settingHandler.GetSettings)
 	v1.Put("/settings", settingHandler.UpdateSettings)
 	v1.Post("/settings/upload", settingHandler.UploadImage)
 	log.Fatal(app.Listen(":8080"))

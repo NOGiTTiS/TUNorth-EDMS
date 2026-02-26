@@ -5,9 +5,10 @@ import (
 	"strconv"
 	"strings"
 	"time"
-	"github.com/golang-jwt/jwt/v5"
 	"tunorth-edms-backend/internal/core/domain"
 	"tunorth-edms-backend/internal/core/ports"
+
+	"github.com/golang-jwt/jwt/v5"
 
 	"github.com/gofiber/fiber/v2"
 )
@@ -46,7 +47,7 @@ func (h *DocumentHandler) RegisterDocument(c *fiber.Ctx) error {
 		To:            c.FormValue("to"),
 		Subject:       c.FormValue("subject"),
 		PhysicalStore: "ธุรการกลาง",
-		CreatedByID:   1, // Mock Admin ID
+		CreatedByID:   getUserID(c),
 	}
 
 	// 3. เรียก Service
@@ -58,7 +59,7 @@ func (h *DocumentHandler) RegisterDocument(c *fiber.Ctx) error {
 			})
 		}
 		// -----------------------------
-		
+
 		return c.Status(500).JSON(fiber.Map{"error": err.Error()})
 	}
 
@@ -76,7 +77,7 @@ func (h *DocumentHandler) RegisterDocument(c *fiber.Ctx) error {
 // PUT /documents/:id
 func (h *DocumentHandler) UpdateDocument(c *fiber.Ctx) error {
 	id, _ := c.ParamsInt("id")
-	
+
 	var req ports.UpdateDocRequest
 	if err := c.BodyParser(&req); err != nil {
 		return c.Status(400).JSON(fiber.Map{"error": "ข้อมูลไม่ถูกต้อง"})
@@ -92,7 +93,7 @@ func (h *DocumentHandler) UpdateDocument(c *fiber.Ctx) error {
 // DELETE /documents/:id
 func (h *DocumentHandler) DeleteDocument(c *fiber.Ctx) error {
 	id, _ := c.ParamsInt("id")
-	
+
 	if err := h.service.DeleteDocument(uint(id)); err != nil {
 		return c.Status(500).JSON(fiber.Map{"error": err.Error()})
 	}
@@ -139,11 +140,8 @@ func (h *DocumentHandler) GetDocument(c *fiber.Ctx) error {
 // POST /documents/:id/route
 func (h *DocumentHandler) RouteDocument(c *fiber.Ctx) error {
 	id, _ := c.ParamsInt("id")
-	
-	// ดึง User ID จาก Token (ใน Middleware ที่จะทำ หรือ Mock ไปก่อน)
-	// *เพื่อความรวดเร็วในการ Dev ตอนนี้ ให้ Hardcode ไปก่อนว่า User คือ ID 2 (Director)* 
-	// (จริงๆ ต้องดึงจาก c.Locals("user").(*jwt.Token)...)
-	userID := getUserID(c) 
+
+	userID := getUserID(c)
 
 	var req ports.RouteRequest
 	if err := c.BodyParser(&req); err != nil {
@@ -168,7 +166,6 @@ func (h *DocumentHandler) GetDepartments(c *fiber.Ctx) error {
 
 func (h *DocumentHandler) Distribute(c *fiber.Ctx) error {
 	id, _ := c.ParamsInt("id")
-	// Mock User Admin (ID 1)
 	userID := getUserID(c)
 
 	type DistributeReq struct {
@@ -188,7 +185,7 @@ func (h *DocumentHandler) Distribute(c *fiber.Ctx) error {
 
 func (h *DocumentHandler) StampDocument(c *fiber.Ctx) error {
 	id, _ := c.ParamsInt("id")
-	userID := getUserID(c) // Mock Admin ID
+	userID := getUserID(c)
 
 	var req StampRequest
 	if err := c.BodyParser(&req); err != nil {
@@ -215,37 +212,45 @@ func (h *DocumentHandler) GetNextNumber(c *fiber.Ctx) error {
 
 func (h *DocumentHandler) CreateDepartment(c *fiber.Ctx) error {
 	var req domain.Department
-	if err := c.BodyParser(&req); err != nil { return c.Status(400).JSON(fiber.Map{"error": "Invalid input"}) }
-	if err := h.service.CreateDepartment(req); err != nil { return c.Status(500).JSON(fiber.Map{"error": err.Error()}) }
+	if err := c.BodyParser(&req); err != nil {
+		return c.Status(400).JSON(fiber.Map{"error": "Invalid input"})
+	}
+	if err := h.service.CreateDepartment(req); err != nil {
+		return c.Status(500).JSON(fiber.Map{"error": err.Error()})
+	}
 	return c.JSON(fiber.Map{"message": "เพิ่มฝ่ายสำเร็จ"})
 }
 
 func (h *DocumentHandler) UpdateDepartment(c *fiber.Ctx) error {
 	id, _ := c.ParamsInt("id")
 	var req domain.Department
-	if err := c.BodyParser(&req); err != nil { return c.Status(400).JSON(fiber.Map{"error": "Invalid input"}) }
-	if err := h.service.UpdateDepartment(uint(id), req); err != nil { return c.Status(500).JSON(fiber.Map{"error": err.Error()}) }
+	if err := c.BodyParser(&req); err != nil {
+		return c.Status(400).JSON(fiber.Map{"error": "Invalid input"})
+	}
+	if err := h.service.UpdateDepartment(uint(id), req); err != nil {
+		return c.Status(500).JSON(fiber.Map{"error": err.Error()})
+	}
 	return c.JSON(fiber.Map{"message": "อัปเดตฝ่ายสำเร็จ"})
 }
 
 func (h *DocumentHandler) DeleteDepartment(c *fiber.Ctx) error {
 	id, _ := c.ParamsInt("id")
-	if err := h.service.DeleteDepartment(uint(id)); err != nil { return c.Status(500).JSON(fiber.Map{"error": err.Error()}) }
+	if err := h.service.DeleteDepartment(uint(id)); err != nil {
+		return c.Status(500).JSON(fiber.Map{"error": err.Error()})
+	}
 	return c.JSON(fiber.Map{"message": "ลบฝ่ายสำเร็จ"})
 }
 
 func (h *DocumentHandler) ForwardToHead(c *fiber.Ctx) error {
 	id, _ := c.ParamsInt("id")
-	
-	// Mock User ID ของคนส่ง (ในระบบจริงดึงจาก Token JWT)
-	// สมมติว่าเป็น User ID 3 (ธุรการฝ่าย)
+
 	senderID := getUserID(c)
 
 	// Struct รับข้อมูล JSON: { "head_ids": [5, 6] }
 	type ForwardReq struct {
 		HeadIDs []uint `json:"head_ids"`
 	}
-	
+
 	var req ForwardReq
 	if err := c.BodyParser(&req); err != nil {
 		return c.Status(400).JSON(fiber.Map{"error": "Invalid request body"})
@@ -265,7 +270,7 @@ func (h *DocumentHandler) ForwardToHead(c *fiber.Ctx) error {
 
 func (h *DocumentHandler) ForwardToDeputy(c *fiber.Ctx) error {
 	id, _ := c.ParamsInt("id")
-	senderID := getUserID(c) // Mock ID ของธุรการฝ่าย (ในระบบจริงต้องดึงจาก Token)
+	senderID := getUserID(c)
 
 	type ForwardReq struct {
 		Note string `json:"note"`
@@ -281,7 +286,7 @@ func (h *DocumentHandler) ForwardToDeputy(c *fiber.Ctx) error {
 
 func (h *DocumentHandler) DeputySign(c *fiber.Ctx) error {
 	id, _ := c.ParamsInt("id")
-	userID := getUserID(c) // Mock ID ของรองผู้อำนวยการ
+	userID := getUserID(c)
 
 	var req ports.RouteRequest
 	if err := c.BodyParser(&req); err != nil {
@@ -296,7 +301,7 @@ func (h *DocumentHandler) DeputySign(c *fiber.Ctx) error {
 
 func (h *DocumentHandler) CompleteDocument(c *fiber.Ctx) error {
 	id, _ := c.ParamsInt("id")
-	userID := uint(5) // Mock ID หัวหน้างาน
+	userID := getUserID(c)
 
 	if err := h.service.CompleteDocument(uint(id), userID); err != nil {
 		return c.Status(500).JSON(fiber.Map{"error": err.Error()})
@@ -307,11 +312,13 @@ func (h *DocumentHandler) CompleteDocument(c *fiber.Ctx) error {
 // ฟังก์ชันช่วยดึง User ID จาก Token ที่ส่งมาใน Header
 func getUserID(c *fiber.Ctx) uint {
 	authHeader := c.Get("Authorization")
-	if authHeader == "" { return 0 }
+	if authHeader == "" {
+		return 0
+	}
 
 	tokenString := strings.Replace(authHeader, "Bearer ", "", 1)
-	
-    // ใช้ Secret Key เดียวกับที่ตั้งไว้ใน auth_service.go
+
+	// ใช้ Secret Key เดียวกับที่ตั้งไว้ใน auth_service.go
 	token, _ := jwt.Parse(tokenString, func(token *jwt.Token) (interface{}, error) {
 		return []byte("my_super_secret_key_tunorth_edms"), nil
 	})
