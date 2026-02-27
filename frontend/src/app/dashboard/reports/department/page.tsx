@@ -165,9 +165,9 @@ export default function DeptReportPage() {
               สถานะการดำเนินการในฝ่าย
             </CardTitle>
           </CardHeader>
-          <CardContent className="h-[350px] pt-6 min-w-0">
-            <div className="h-full w-full min-w-0 relative">
-              <ResponsiveContainer width="99.9%" height="100%">
+          <CardContent className="pt-6 min-w-0">
+            <div className="w-full min-w-0 relative">
+              <ResponsiveContainer width="99.9%" height={350}>
                 <PieChart>
                   <Pie
                     data={data?.by_status}
@@ -203,9 +203,9 @@ export default function DeptReportPage() {
               ภาระงานแยกตามหัวหน้างาน
             </CardTitle>
           </CardHeader>
-          <CardContent className="h-[350px] pt-6 min-w-0">
-            <div className="h-full w-full min-w-0 relative">
-              <ResponsiveContainer width="99.9%" height="100%">
+          <CardContent className="pt-6 min-w-0">
+            <div className="w-full min-w-0 relative">
+              <ResponsiveContainer width="99.9%" height={350}>
                 <BarChart
                   data={data?.by_head}
                   layout="vertical"

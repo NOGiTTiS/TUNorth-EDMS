@@ -186,8 +186,8 @@ export default function ReportPage() {
             </CardTitle>
           </CardHeader>
           <CardContent className="min-w-0">
-            <div className="h-[300px] w-full min-w-0 relative">
-              <ResponsiveContainer width="99.9%" height="100%">
+            <div className="w-full min-w-0 relative">
+              <ResponsiveContainer width="99.9%" height={300}>
                 <PieChart>
                   <Pie
                     data={data?.by_status || []}
@@ -226,8 +226,8 @@ export default function ReportPage() {
             </CardTitle>
           </CardHeader>
           <CardContent className="min-w-0">
-            <div className="h-[300px] w-full min-w-0 relative">
-              <ResponsiveContainer width="99.9%" height="100%">
+            <div className="w-full min-w-0 relative">
+              <ResponsiveContainer width="99.9%" height={300}>
                 <BarChart
                   data={data?.by_department || []}
                   layout="vertical"
