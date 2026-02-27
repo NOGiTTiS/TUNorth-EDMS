@@ -1,0 +1,40 @@
+services:
+  backend:
+    build: ./backend
+    container_name: edms-backend
+    restart: always
+    networks:
+      - tunorth-net
+    environment:
+      - DB_HOST=shared-postgres
+      - DB_USER=postgres
+      - DB_PASSWORD=ChangeMePLEASE1234 # <-- ใส่รหัสผ่าน DB ของคุณ
+      - DB_NAME=tunorth-edms_db      # <-- ชื่อ DB ใหม่ของ EDMS
+      - DB_PORT=5432
+      - PORT=8080
+      - DB_SSL=disable               # <-- ปิด SSL เพื่อคุยกันใน Docker
+      - ALLOW_ORIGINS=https://edms.tn.ac.th
+      # ตั้งค่า JWT Secret (ควรเปลี่ยนให้ยากๆ)
+      - JWT_SECRET=SecretJa
+    volumes:
+      # 👇 Map โฟลเดอร์รูปภาพออกมาข้างนอก เพื่อให้รูปไม่หายและแก้ไขสิทธิ์ได้
+      - ./backend/uploads:/app/uploads
+
+  frontend:
+    build:
+      context: ./frontend
+      args:
+        # 👇 ใส่แค่ Domain หลัก (ไม่ต้องมี /api หรือ /v1) เดี๋ยวโค้ดเติมเอง
+        - NEXT_PUBLIC_API_URL=https://edms.tn.ac.th
+    container_name: edms-frontend
+    restart: always
+    networks:
+      - tunorth-net
+    environment:
+      - NEXT_PUBLIC_API_URL=https://edms.tn.ac.th
+    depends_on:
+      - backend
+
+networks:
+  tunorth-net:
+    external: true

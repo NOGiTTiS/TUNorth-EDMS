@@ -1,18 +1,39 @@
-FROM oven/bun:1.3.9
-
+FROM oven/bun:1.3 AS base
 WORKDIR /app
 
-# Copy package files
+# Stage 1: Install dependencies
+FROM base AS deps
 COPY package.json bun.lock ./
+RUN bun install --frozen-lockfile
 
-# Install dependencies
-RUN bun install
-
-# Copy source files
+# Stage 2: Build
+FROM base AS builder
+COPY --from=deps /app/node_modules ./node_modules
 COPY . .
 
-# Expose port
+# Environment for Build
+ENV NEXT_TELEMETRY_DISABLED=1
+ENV NODE_ENV=production
+
+# 👇 รับค่าตัวแปรตอน Build เพื่อฝังลงในไฟล์ JS
+ARG NEXT_PUBLIC_API_URL
+ENV NEXT_PUBLIC_API_URL=${NEXT_PUBLIC_API_URL}
+
+# Build Next.js
+RUN bun run build
+
+# Stage 3: Runner
+FROM base AS runner
+WORKDIR /app
+
+ENV NODE_ENV=production
+ENV NEXT_TELEMETRY_DISABLED=1
+
+# Copy files จำเป็นสำหรับ Standalone mode
+COPY --from=builder /app/public ./public
+COPY --from=builder /app/.next/standalone ./
+COPY --from=builder /app/.next/static ./.next/static
+
 EXPOSE 3000
 
-# Start dev server
-CMD ["bun", "dev"]
+CMD ["bun", "server.js"]
