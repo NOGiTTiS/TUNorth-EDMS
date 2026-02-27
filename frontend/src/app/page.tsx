@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { useRouter } from "next/navigation"
 import Link from "next/link"
 import { useAuthStore } from "@/store/authStore"
@@ -23,12 +23,19 @@ import { LockKeyhole, User, Loader2 } from "lucide-react"
 
 export default function LoginPage() {
   const router = useRouter()
-  const { login } = useAuthStore()
+  const { login, user, _hasHydrated } = useAuthStore()
   const { settings } = useSettingStore()
 
   const [username, setUsername] = useState("")
   const [password, setPassword] = useState("")
   const [isLoading, setIsLoading] = useState(false)
+
+  // ถ้าล็อกอินอยู่แล้ว ให้เด้งไปหน้า Dashboard
+  useEffect(() => {
+    if (_hasHydrated && user) {
+      router.push("/dashboard")
+    }
+  }, [_hasHydrated, user, router])
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault()

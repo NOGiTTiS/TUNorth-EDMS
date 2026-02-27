@@ -158,85 +158,89 @@ export default function DeptReportPage() {
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 print:grid-cols-1 print:gap-10">
         {/* Pie Chart: สถานะงานในฝ่าย */}
-        <Card className="shadow-sm border-slate-200">
+        <Card className="shadow-sm border-slate-200 min-w-0">
           <CardHeader className="bg-slate-50/50 border-b">
             <CardTitle className="text-base font-semibold text-slate-700 flex items-center gap-2">
               <PieIcon className="w-4 h-4 text-blue-500" />{" "}
               สถานะการดำเนินการในฝ่าย
             </CardTitle>
           </CardHeader>
-          <CardContent className="h-[350px] pt-6">
-            <ResponsiveContainer width="100%" height="100%">
-              <PieChart>
-                <Pie
-                  data={data?.by_status}
-                  cx="50%"
-                  cy="50%"
-                  label={({ name, percent }) =>
-                    `${name} ${((percent || 0) * 100).toFixed(0)}%`
-                  }
-                  outerRadius={110}
-                  fill="#8884d8"
-                  dataKey="value"
-                >
-                  {data?.by_status?.map((entry: any, index: number) => (
-                    <Cell
-                      key={`cell-${index}`}
-                      fill={COLORS[index % COLORS.length]}
-                    />
-                  ))}
-                </Pie>
-                <Tooltip />
-                <Legend wrapperStyle={{ paddingTop: "20px" }} />
-              </PieChart>
-            </ResponsiveContainer>
+          <CardContent className="h-[350px] pt-6 min-w-0">
+            <div className="h-full w-full min-w-0 relative">
+              <ResponsiveContainer width="99.9%" height="100%">
+                <PieChart>
+                  <Pie
+                    data={data?.by_status}
+                    cx="50%"
+                    cy="50%"
+                    label={({ name, percent }) =>
+                      `${name} ${((percent || 0) * 100).toFixed(0)}%`
+                    }
+                    outerRadius={110}
+                    fill="#8884d8"
+                    dataKey="value"
+                  >
+                    {data?.by_status?.map((entry: any, index: number) => (
+                      <Cell
+                        key={`cell-${index}`}
+                        fill={COLORS[index % COLORS.length]}
+                      />
+                    ))}
+                  </Pie>
+                  <Tooltip />
+                  <Legend wrapperStyle={{ paddingTop: "20px" }} />
+                </PieChart>
+              </ResponsiveContainer>
+            </div>
           </CardContent>
         </Card>
 
         {/* Bar Chart: ภาระงานหัวหน้างาน */}
-        <Card className="shadow-sm border-slate-200">
+        <Card className="shadow-sm border-slate-200 min-w-0">
           <CardHeader className="bg-slate-50/50 border-b">
             <CardTitle className="text-base font-semibold text-slate-700 flex items-center gap-2">
               <Users className="w-4 h-4 text-purple-500" />{" "}
               ภาระงานแยกตามหัวหน้างาน
             </CardTitle>
           </CardHeader>
-          <CardContent className="h-[350px] pt-6">
-            <ResponsiveContainer width="100%" height="100%">
-              <BarChart
-                data={data?.by_head}
-                layout="vertical"
-                margin={{ top: 5, right: 30, left: 40, bottom: 5 }}
-              >
-                <CartesianGrid
-                  strokeDasharray="3 3"
-                  horizontal={true}
-                  vertical={false}
-                />
-                <XAxis type="number" allowDecimals={false} hide />
-                <YAxis
-                  dataKey="name"
-                  type="category"
-                  width={120}
-                  tick={{ fontSize: 12, fill: "#64748b" }}
-                />
-                <Tooltip cursor={{ fill: "#f8fafc" }} />
-                <Bar
-                  dataKey="value"
-                  fill="#8b5cf6"
-                  radius={[0, 4, 4, 0]}
-                  barSize={24}
-                  name="จำนวนงาน (ฉบับ)"
+          <CardContent className="h-[350px] pt-6 min-w-0">
+            <div className="h-full w-full min-w-0 relative">
+              <ResponsiveContainer width="99.9%" height="100%">
+                <BarChart
+                  data={data?.by_head}
+                  layout="vertical"
+                  margin={{ top: 5, right: 30, left: 40, bottom: 5 }}
                 >
-                  {data?.by_head?.map((entry: any, index: number) => (
-                    <Cell
-                      key={`cell-${index}`}
-                      fill={COLORS[index % COLORS.length]}
-                    />
-                  ))}
-                </Bar>
-              </BarChart>
-            </ResponsiveContainer>
+                  <CartesianGrid
+                    strokeDasharray="3 3"
+                    horizontal={true}
+                    vertical={false}
+                  />
+                  <XAxis type="number" allowDecimals={false} hide />
+                  <YAxis
+                    dataKey="name"
+                    type="category"
+                    width={120}
+                    tick={{ fontSize: 12, fill: "#64748b" }}
+                  />
+                  <Tooltip cursor={{ fill: "#f8fafc" }} />
+                  <Bar
+                    dataKey="value"
+                    fill="#8b5cf6"
+                    radius={[0, 4, 4, 0]}
+                    barSize={24}
+                    name="จำนวนงาน (ฉบับ)"
+                  >
+                    {data?.by_head?.map((entry: any, index: number) => (
+                      <Cell
+                        key={`cell-${index}`}
+                        fill={COLORS[index % COLORS.length]}
+                      />
+                    ))}
+                  </Bar>
+                </BarChart>
+              </ResponsiveContainer>
+            </div>
           </CardContent>
         </Card>
       </div>

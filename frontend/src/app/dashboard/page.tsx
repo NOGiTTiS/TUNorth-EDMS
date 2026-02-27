@@ -144,7 +144,10 @@ export default function DashboardOverview() {
       </div>
 
       {/* --- ส่วนกราฟ (วางไว้ด้านล่าง) --- */}
-      <Card className="shadow-sm border-t-4" style={{ borderTopColor: 'var(--theme-main)' }}>
+      <Card
+        className="shadow-sm border-t-4 min-w-0"
+        style={{ borderTopColor: "var(--theme-main)" }}
+      >
         <CardHeader>
           <CardTitle className="flex items-center gap-2 text-slate-800">
             {/* เปลี่ยน text-pink-500 เป็น class text-theme-main ที่เราเขียนไว้ใน Provider */}
@@ -152,14 +155,14 @@ export default function DashboardOverview() {
             สถิติปริมาณหนังสือเข้า (รายเดือน)
           </CardTitle>
         </CardHeader>
-        <CardContent>
-          <div className="h-[350px] w-full mt-4">
+        <CardContent className="min-w-0">
+          <div className="h-[350px] w-full mt-4 min-w-0 relative">
             {isLoading ? (
               <div className="h-full flex items-center justify-center text-slate-400">
                 กำลังโหลดกราฟ...
               </div>
             ) : (
-              <ResponsiveContainer width="100%" height="100%">
+              <ResponsiveContainer width="100%" height={350}>
                 <BarChart
                   data={chartData}
                   margin={{ top: 20, right: 30, left: 0, bottom: 5 }}
@@ -189,7 +192,12 @@ export default function DashboardOverview() {
                     }}
                     cursor={{ fill: "#f1f5f9" }}
                   />
-                  <Bar dataKey="count" name="จำนวนหนังสือ" radius={[4, 4, 0, 0]} barSize={40}>
+                  <Bar
+                    dataKey="count"
+                    name="จำนวนหนังสือ"
+                    radius={[4, 4, 0, 0]}
+                    barSize={40}
+                  >
                     {chartData.map((entry, index) => (
                       // เปลี่ยนจาก "#db2777" เป็น "var(--theme-main)"
                       <Cell key={`cell-${index}`} fill="var(--theme-main)" />

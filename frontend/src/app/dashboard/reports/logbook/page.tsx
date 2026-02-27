@@ -148,15 +148,41 @@ export default function LogbookReportPage() {
           dangerouslySetInnerHTML={{
             __html: `
           @media print {
-            @page { size: A4 landscape; margin: 10mm; }
-            body { background: white !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+            @page { size: A4 landscape; margin: 10mm 15mm; }
+            body { 
+              background: white !important; 
+              -webkit-print-color-adjust: exact; 
+              print-color-adjust: exact;
+              overflow: visible !important;
+              height: auto !important;
+            }
             .print\\:hidden { display: none !important; }
-            .dashboard-main { padding: 0 !important; margin: 0 !important; }
-            .report-container { box-shadow: none !important; border: none !important; width: 100% !important; margin: 0 !important; padding: 0 !important; overflow: visible !important; }
-            table { width: 100%; border-collapse: collapse; font-size: 10px; table-layout: fixed; page-break-inside: auto; }
+            .dashboard-main { padding: 0 !important; margin: 0 !important; overflow: visible !important; }
+            .report-container { 
+              box-shadow: none !important; 
+              border: none !important; 
+              width: 100% !important; 
+              margin: 0 !important; 
+              padding: 0 !important; 
+              overflow: visible !important; 
+              display: block !important;
+            }
+            table { 
+              width: 100%; 
+              border-collapse: collapse; 
+              font-size: 10px; 
+              table-layout: fixed; 
+              page-break-inside: auto; 
+            }
             thead { display: table-header-group; }
             tr { page-break-inside: avoid; page-break-after: auto; }
-            th, td { border: 0.5pt solid #000 !important; padding: 6px 4px !important; color: #000 !important; word-wrap: break-word; overflow: visible !important; }
+            th, td { 
+              border: 0.5pt solid #000 !important; 
+              padding: 6px 4px !important; 
+              color: #000 !important; 
+              word-wrap: break-word; 
+              overflow: visible !important; 
+            }
             th { background-color: #f1f5f9 !important; }
           }
         `,

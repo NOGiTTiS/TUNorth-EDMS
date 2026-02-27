@@ -179,15 +179,15 @@ export default function ReportPage() {
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 print:grid-cols-1 print:gap-8">
         {/* กราฟวงกลม: สถานะเอกสาร */}
-        <Card className="print:shadow-none print:border shadow-sm">
+        <Card className="print:shadow-none print:border shadow-sm min-w-0">
           <CardHeader className="bg-slate-50/50 border-b">
             <CardTitle className="text-base font-bold flex items-center gap-2 text-theme-main">
               <PieIcon className="w-5 h-5" /> สัดส่วนสถานะเอกสาร
             </CardTitle>
           </CardHeader>
-          <CardContent>
-            <div className="h-[300px] w-full min-w-0">
-              <ResponsiveContainer width="100%" height="100%">
+          <CardContent className="min-w-0">
+            <div className="h-[300px] w-full min-w-0 relative">
+              <ResponsiveContainer width="99.9%" height="100%">
                 <PieChart>
                   <Pie
                     data={data?.by_status || []}
@@ -219,15 +219,15 @@ export default function ReportPage() {
         </Card>
 
         {/* กราฟแท่ง: ปริมาณงานแยกตามฝ่าย */}
-        <Card className="print:shadow-none print:border print:break-before-auto shadow-sm">
+        <Card className="print:shadow-none print:border print:break-before-auto shadow-sm min-w-0">
           <CardHeader className="bg-slate-50/50 border-b">
             <CardTitle className="text-base font-bold flex items-center gap-2 text-theme-main">
               <BarChart3 className="w-5 h-5" /> ปริมาณงานแยกตามฝ่าย
             </CardTitle>
           </CardHeader>
-          <CardContent>
-            <div className="h-[300px] w-full min-w-0">
-              <ResponsiveContainer width="100%" height="100%">
+          <CardContent className="min-w-0">
+            <div className="h-[300px] w-full min-w-0 relative">
+              <ResponsiveContainer width="99.9%" height="100%">
                 <BarChart
                   data={data?.by_department || []}
                   layout="vertical"

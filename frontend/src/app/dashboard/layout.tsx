@@ -27,23 +27,32 @@ export default function DashboardLayout({
 }: {
   children: React.ReactNode
 }) {
-  const { user, logout } = useAuthStore()
+  const { user, logout, _hasHydrated } = useAuthStore()
   const { settings } = useSettingStore()
   const router = useRouter()
   const pathname = usePathname()
   const [isChecking, setIsChecking] = useState(true)
+  const [isSidebarOpen, setIsSidebarOpen] = useState(false)
 
   // ตรวจสอบสิทธิ์การเข้าถึง หากไม่มี user ให้เด้งกลับไปหน้า Login
   useEffect(() => {
+    // รอให้ Zustand Rehydrate ข้อมูลจาก LocalStorage ให้เสร็จก่อน
+    if (!_hasHydrated) return
+
     if (!user) {
       router.push("/")
     } else {
       setIsChecking(false)
     }
-  }, [user, router])
+  }, [_hasHydrated, user, router])
 
-  // ซ่อนหน้าเปล่าๆ ระหว่างรอเช็ค
-  if (!user || isChecking) return null
+  // ปิด Sidebar เมื่อเปลี่ยนหน้า (สำหรับ Mobile)
+  useEffect(() => {
+    setIsSidebarOpen(false)
+  }, [pathname])
+
+  // ซ่อนหน้าเปล่าๆ ระหว่างรอเช็ค หรือถ้าไม่มี user (อยู่ระหว่างเด้งไปหน้า login)
+  if (!_hasHydrated || isChecking || !user) return null
 
   // จัดการรายการเมนูตามสิทธิ์ (Role)
   const menuItems = [
@@ -111,9 +120,22 @@ export default function DashboardLayout({
   }
 
   return (
-    <div className="flex h-screen bg-slate-50 dark:bg-slate-900">
+    <div className="flex h-screen bg-slate-50 dark:bg-slate-900 overflow-hidden print:h-auto print:overflow-visible">
+      {/* Overlay สำหรับ Mobile */}
+      {isSidebarOpen && (
+        <div
+          className="fixed inset-0 bg-slate-900/50 z-40 md:hidden backdrop-blur-sm transition-opacity"
+          onClick={() => setIsSidebarOpen(false)}
+        />
+      )}
+
       {/* Sidebar */}
-      <aside className="w-64 bg-white dark:bg-slate-800 border-r shadow-sm hidden md:flex flex-col print:hidden">
+      <aside
+        className={cn(
+          "fixed inset-y-0 left-0 bg-white dark:bg-slate-800 border-r shadow-lg z-50 w-64 transform transition-transform duration-300 ease-in-out md:relative md:translate-x-0 md:shadow-sm md:flex md:flex-col print:hidden",
+          isSidebarOpen ? "translate-x-0" : "-translate-x-full",
+        )}
+      >
         {/* ส่วนหัว Sidebar */}
         <div className="p-6 border-b flex flex-col items-center gap-3 text-center">
           {settings.logo_url ? (
@@ -172,13 +194,13 @@ export default function DashboardLayout({
           <div className="flex items-center gap-3 mb-4 px-2">
             <div className="w-8 h-8 rounded-full bg-slate-200 flex items-center justify-center text-slate-600 font-bold border border-slate-300 overflow-hidden">
               {/* ถ้ามีรูปโปรไฟล์ user ใส่ตรงนี้ได้ แต่ตอนนี้ใช้ตัวอักษรย่อ */}
-              {user.username.charAt(0).toUpperCase()}
+              {user?.username?.charAt(0).toUpperCase()}
             </div>
             <div className="overflow-hidden">
               <p className="text-sm font-medium truncate text-slate-800">
-                {user.full_name}
+                {user?.full_name}
               </p>
-              <p className="text-xs text-slate-500 truncate">{user.role}</p>
+              <p className="text-xs text-slate-500 truncate">{user?.role}</p>
             </div>
           </div>
           <Button
@@ -201,13 +223,19 @@ export default function DashboardLayout({
 
       {/* Main Content Area */}
       {/* เพิ่ม print:overflow-visible และ print:block เพื่อแก้ปัญหาพิมพ์หน้า Logbook */}
-      <main className="flex-1 overflow-y-auto print:overflow-visible print:block bg-slate-50">
+      <main className="flex-1 overflow-y-auto print:overflow-visible print:block print:h-auto bg-slate-50">
         {/* Mobile Header */}
-        <header className="h-16 bg-white dark:bg-slate-800 border-b flex items-center justify-between px-6 md:hidden print:hidden">
+        <header className="h-16 bg-white dark:bg-slate-800 border-b flex items-center justify-between px-6 md:hidden print:hidden shrink-0">
           <span className="font-bold text-theme-main">
             {settings.system_name}
           </span>
-          <Menu className="w-6 h-6 text-slate-600" />
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={() => setIsSidebarOpen(true)}
+          >
+            <Menu className="w-6 h-6 text-slate-600" />
+          </Button>
         </header>
 
         <div className="p-6 print:p-0">{children}</div>
