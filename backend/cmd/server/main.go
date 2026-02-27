@@ -62,12 +62,11 @@ func main() {
 	v1.Post("/login", authHandler.Login)
 	v1.Post("/register", userHandler.RegisterUser)
 	v1.Get("/settings", settingHandler.GetSettings) // Public settings for UI themes
+	v1.Get("/departments", docHandler.GetDepartments)
+	v1.Get("/telegram/latest-id", settingHandler.GetLatestTelegramChatID)
 
 	// --- Use JWT Middleware for all subsequent routes ---
 	v1.Use(middleware.AuthRequired())
-
-	v1.Get("/departments", docHandler.GetDepartments)
-	v1.Get("/telegram/latest-id", settingHandler.GetLatestTelegramChatID)
 
 	v1.Get("/dashboard/stats", docHandler.GetStats)
 
