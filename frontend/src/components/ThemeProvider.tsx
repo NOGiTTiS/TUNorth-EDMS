@@ -1,5 +1,6 @@
 "use client"
 import { useEffect } from "react"
+import { usePathname } from "next/navigation"
 import { useSettingStore } from "@/store/settingStore"
 
 export default function ThemeProvider({
@@ -8,6 +9,7 @@ export default function ThemeProvider({
   children: React.ReactNode
 }) {
   const { settings, fetchSettings } = useSettingStore()
+  const pathname = usePathname()
 
   useEffect(() => {
     fetchSettings()
@@ -15,28 +17,38 @@ export default function ThemeProvider({
 
   // จัดการ Favicon แบบ Dynamic
   useEffect(() => {
-    if (settings.favicon_url) {
-      // 1. แก้ไข Path ให้ถูกต้องก่อน
-      let cleanPath = settings.favicon_url.replace(/\\/g, "/")
-      if (cleanPath.startsWith("/loads")) {
-        cleanPath = cleanPath.replace("/loads", "/uploads")
-      }
-      const fullFaviconUrl = `${process.env.NEXT_PUBLIC_API_URL}${cleanPath}`
+    const updateFavicon = () => {
+      const faviconUrl = settings.favicon_url || settings.logo_url
+      if (faviconUrl) {
+        // 1. แก้ไข Path ให้ถูกต้องก่อน
+        let cleanPath = faviconUrl.replace(/\\/g, "/")
+        if (cleanPath.startsWith("/loads")) {
+          cleanPath = cleanPath.replace("/loads", "/uploads")
+        }
+        const fullFaviconUrl = `${process.env.NEXT_PUBLIC_API_URL}${cleanPath}`
 
-      // 2. ค้นหาและเปลี่ยน Link Tag
-      const link = document.querySelector(
-        "link[rel~='icon']",
-      ) as HTMLLinkElement
-      if (link) {
-        link.href = fullFaviconUrl
-      } else {
-        const newLink = document.createElement("link")
-        newLink.rel = "icon"
-        newLink.href = fullFaviconUrl
-        document.head.appendChild(newLink)
+        // 2. ค้นหาและเปลี่ยน Link Tag (rel icon หรือ shortcut icon)
+        const existingLinks = document.querySelectorAll("link[rel*='icon']")
+        if (existingLinks.length > 0) {
+          existingLinks.forEach((link: any) => {
+            link.href = fullFaviconUrl
+          })
+        } else {
+          const newLink = document.createElement("link")
+          newLink.rel = "icon"
+          newLink.href = fullFaviconUrl
+          document.head.appendChild(newLink)
+        }
       }
     }
-  }, [settings.favicon_url])
+
+    // เรียกทันที
+    updateFavicon()
+
+    // และเรียกอีกครั้งหลังจาก Next.js จัดการ Metadata เสร็จ (กรณีเปลี่ยนหน้า)
+    const timeoutId = setTimeout(updateFavicon, 100)
+    return () => clearTimeout(timeoutId)
+  }, [settings.favicon_url, settings.logo_url, pathname])
 
   return (
     <div
