@@ -267,8 +267,7 @@ func (s *documentService) StampAndSign(docID uint, adminID uint, deptIDs []uint,
 	// ----------------------------------------------------
 	if s.canSendNotify() {
 		directors, _ := s.userRepo.FindByRole(string(domain.RoleDirector))
-		frontendURL := os.Getenv("FRONTEND_URL")
-		if frontendURL == "" { frontendURL = "http://localhost:3000" }
+		frontendURL := s.getFrontendURL()
 		docLink := fmt.Sprintf("%s/dashboard/documents/%d", frontendURL, doc.ID)
 
 		// เตรียมชื่อไฟล์ภาษาไทย
@@ -277,9 +276,9 @@ func (s *documentService) StampAndSign(docID uint, adminID uint, deptIDs []uint,
 
 		for _, dir := range directors {
 			if dir.TelegramChatID != "" {
-				msg := fmt.Sprintf("⚠️ <b>หนังสือเข้าใหม่ (รอสั่งการ)</b> ⚠️\n\n📄 <b>เรื่อง:</b> %s\n🔖 <b>เลขรับ:</b> %s\n👤 <b>จาก:</b> %s\n📌 <b>สถานะ:</b> รอผู้อำนวยการสั่งการ\n\n🔗 <b>เปิดระบบบนเว็บได้ที่:</b>\n%s", 
+				msg := fmt.Sprintf("⚠️ <b>หนังสือเข้าใหม่ (รอสั่งการ)</b> ⚠️\n\n📄 <b>เรื่อง:</b> %s\n🔖 <b>เลขรับ:</b> %s\n👤 <b>จาก:</b> %s\n📌 <b>สถานะ:</b> รอผู้อำนวยการสั่งการ\n\n🔗 <b>เปิดระบบบนเว็บได้ที่:</b>\n%s",
 					doc.Subject, doc.ReceiveNo, doc.From, docLink)
-				
+
 				// ส่งไฟล์แทนข้อความ
 				s.notifier.SendDocument(dir.TelegramChatID, msg, doc.FilePath, displayFilename)
 			}
@@ -460,8 +459,7 @@ func (s *documentService) KasienDocument(docID uint, userID uint, req ports.Rout
 	// ----------------------------------------------------
 	if s.canSendNotify() {
 		admins, _ := s.userRepo.FindByRole(string(domain.RoleAdminCentral))
-		frontendURL := os.Getenv("FRONTEND_URL")
-		if frontendURL == "" { frontendURL = "http://localhost:3000" }
+		frontendURL := s.getFrontendURL()
 		docLink := fmt.Sprintf("%s/dashboard/documents/%d", frontendURL, doc.ID)
 
 		cleanNo := strings.ReplaceAll(doc.ReceiveNo, "/", "_")
@@ -469,9 +467,9 @@ func (s *documentService) KasienDocument(docID uint, userID uint, req ports.Rout
 
 		for _, admin := range admins {
 			if admin.TelegramChatID != "" {
-				msg := fmt.Sprintf("✅ <b>ผู้อำนวยการสั่งการแล้ว</b> ✅\n\n📄 <b>เรื่อง:</b> %s\n🔖 <b>เลขรับ:</b> %s\n👤 <b>จาก:</b> %s\n📌 <b>สถานะ:</b> รอธุรการแจกจ่าย\n\n🔗 <b>เปิดระบบบนเว็บได้ที่:</b>\n%s", 
+				msg := fmt.Sprintf("✅ <b>ผู้อำนวยการสั่งการแล้ว</b> ✅\n\n📄 <b>เรื่อง:</b> %s\n🔖 <b>เลขรับ:</b> %s\n👤 <b>จาก:</b> %s\n📌 <b>สถานะ:</b> รอธุรการแจกจ่าย\n\n🔗 <b>เปิดระบบบนเว็บได้ที่:</b>\n%s",
 					doc.Subject, doc.ReceiveNo, doc.From, docLink)
-				
+
 				s.notifier.SendDocument(admin.TelegramChatID, msg, doc.FilePath, displayFilename)
 			}
 		}
@@ -532,10 +530,7 @@ func (s *documentService) DistributeDocument(docID uint, adminID uint, deptIDs [
 	targetDepts, _ := s.repo.GetDepartmentsByIDs(deptIDs)
 
 	// 3. เตรียมลิงก์สำหรับเปิดเอกสาร
-	frontendURL := os.Getenv("FRONTEND_URL")
-	if frontendURL == "" {
-		frontendURL = "http://localhost:3000"
-	}
+	frontendURL := s.getFrontendURL()
 	docLink := fmt.Sprintf("%s/dashboard/documents/%d", frontendURL, doc.ID)
 
 	for _, dept := range targetDepts {
@@ -551,7 +546,7 @@ func (s *documentService) DistributeDocument(docID uint, adminID uint, deptIDs [
 
 		// 3.2 ส่งแจ้งเตือน Telegram
 		if s.canSendNotify() {
-			msg := fmt.Sprintf("📢 <b>หนังสือเข้าใหม่ถึงฝ่ายท่าน (%s)</b> 📢\n\n📄 <b>เรื่อง:</b> %s\n🔖 <b>เลขรับ:</b> %s\n👤 <b>จาก:</b> %s\n📌 <b>สถานะ:</b> แจกจ่ายไปยังฝ่ายแล้ว\n\n🔗 <b>เปิดระบบบนเว็บได้ที่:</b>\n%s", 
+			msg := fmt.Sprintf("📢 <b>หนังสือเข้าใหม่ถึงฝ่ายท่าน (%s)</b> 📢\n\n📄 <b>เรื่อง:</b> %s\n🔖 <b>เลขรับ:</b> %s\n👤 <b>จาก:</b> %s\n📌 <b>สถานะ:</b> แจกจ่ายไปยังฝ่ายแล้ว\n\n🔗 <b>เปิดระบบบนเว็บได้ที่:</b>\n%s",
 				dept.Name, doc.Subject, doc.ReceiveNo, doc.From, docLink)
 
 			cleanNo := strings.ReplaceAll(doc.ReceiveNo, "/", "_")
@@ -738,9 +733,8 @@ func (s *documentService) ForwardToDeputy(docID uint, senderID uint, note string
 	// ----------------------------------------------------
 	if s.canSendNotify() {
 		deputies, _ := s.userRepo.FindByDeptAndRole(*sender.DepartmentID, string(domain.RoleDeputy))
-		
-		frontendURL := os.Getenv("FRONTEND_URL")
-		if frontendURL == "" { frontendURL = "http://localhost:3000" }
+
+		frontendURL := s.getFrontendURL()
 		docLink := fmt.Sprintf("%s/dashboard/documents/%d", frontendURL, doc.ID)
 
 		cleanNo := strings.ReplaceAll(doc.ReceiveNo, "/", "_")
@@ -748,9 +742,9 @@ func (s *documentService) ForwardToDeputy(docID uint, senderID uint, note string
 
 		for _, dep := range deputies {
 			if dep.TelegramChatID != "" {
-				msg := fmt.Sprintf("⚠️ <b>มีหนังสือเสนอพิจารณา (ระดับฝ่าย)</b>\n\n📄 <b>เรื่อง:</b> %s\n🔖 <b>เลขรับ:</b> %s\n📌 <b>สถานะ:</b> รอรองผู้อำนวยการฝ่ายสั่งการ\n\n🔗 <b>เปิดระบบบนเว็บได้ที่:</b>\n%s", 
+				msg := fmt.Sprintf("⚠️ <b>มีหนังสือเสนอพิจารณา (ระดับฝ่าย)</b>\n\n📄 <b>เรื่อง:</b> %s\n🔖 <b>เลขรับ:</b> %s\n📌 <b>สถานะ:</b> รอรองผู้อำนวยการฝ่ายสั่งการ\n\n🔗 <b>เปิดระบบบนเว็บได้ที่:</b>\n%s",
 					doc.Subject, doc.ReceiveNo, docLink)
-				
+
 				s.notifier.SendDocument(dep.TelegramChatID, msg, doc.FilePath, displayFilename)
 			}
 		}
@@ -896,9 +890,11 @@ func (s *documentService) DeputySign(docID uint, userID uint, req ports.RouteReq
 	// ----------------------------------------------------
 	if s.canSendNotify() {
 		admins, _ := s.userRepo.FindByDeptAndRole(*user.DepartmentID, string(domain.RoleAdminDept))
-		
+
 		frontendURL := os.Getenv("FRONTEND_URL")
-		if frontendURL == "" { frontendURL = "http://localhost:3000" }
+		if frontendURL == "" {
+			frontendURL = "http://localhost:3000"
+		}
 		docLink := fmt.Sprintf("%s/dashboard/documents/%d", frontendURL, doc.ID)
 
 		cleanNo := strings.ReplaceAll(doc.ReceiveNo, "/", "_")
@@ -906,9 +902,9 @@ func (s *documentService) DeputySign(docID uint, userID uint, req ports.RouteReq
 
 		for _, admin := range admins {
 			if admin.TelegramChatID != "" {
-				msg := fmt.Sprintf("✅ <b>รองฯ ฝ่ายสั่งการแล้ว</b>\n\n📄 <b>เรื่อง:</b> %s\n🔖 <b>เลขรับ:</b> %s\n📌 <b>สถานะ:</b> รองฯ สั่งการเรียบร้อย\n\n🔗 <b>เปิดระบบบนเว็บได้ที่:</b>\n%s", 
+				msg := fmt.Sprintf("✅ <b>รองฯ ฝ่ายสั่งการแล้ว</b>\n\n📄 <b>เรื่อง:</b> %s\n🔖 <b>เลขรับ:</b> %s\n📌 <b>สถานะ:</b> รองฯ สั่งการเรียบร้อย\n\n🔗 <b>เปิดระบบบนเว็บได้ที่:</b>\n%s",
 					doc.Subject, doc.ReceiveNo, docLink)
-				
+
 				s.notifier.SendDocument(admin.TelegramChatID, msg, doc.FilePath, displayFilename)
 			}
 		}
@@ -955,7 +951,7 @@ func (s *documentService) ForwardToHead(docID uint, senderID uint, headIDs []uin
 		if s.canSendNotify() {
 			headUser, err := s.userRepo.FindByID(headID)
 			if err == nil && headUser.TelegramChatID != "" {
-				
+
 				// 1. สร้างข้อความรายละเอียดหลัก (จะถูกใช้เป็น Caption ใต้ไฟล์)
 				msg := fmt.Sprintf("📢 <b>งานเข้าใหม่ (จากธุรการฝ่าย)</b> 📢\n\n📄 <b>เรื่อง:</b> %s\n🔖 <b>เลขรับ:</b> %s\n📌 <b>สถานะ:</b> มอบหมายให้หัวหน้างาน\n\n🔗 <b>เปิดระบบบนเว็บได้ที่:</b>\n%s",
 					doc.Subject, doc.ReceiveNo, docLink)
@@ -1051,8 +1047,12 @@ func (s *documentService) GetLogbookReport(month int, year int) ([]domain.Docume
 
 func (s *documentService) GetDeptReportStats(userID uint, start, end string) (*ports.DeptReportStats, error) {
 	user, err := s.userRepo.FindByID(userID)
-	if err != nil { return nil, err }
-	if user.DepartmentID == nil { return nil, fmt.Errorf("user has no department") }
+	if err != nil {
+		return nil, err
+	}
+	if user.DepartmentID == nil {
+		return nil, fmt.Errorf("user has no department")
+	}
 
 	// วันที่ Default
 	if start == "" || end == "" {
@@ -1062,4 +1062,21 @@ func (s *documentService) GetDeptReportStats(userID uint, start, end string) (*p
 	}
 
 	return s.repo.GetDeptReportStats(*user.DepartmentID, start, end)
+}
+
+func (s *documentService) getFrontendURL() string {
+	// 1. ลองดึงจาก Database Setting ก่อน
+	setting, err := s.settingRepo.GetByKey(domain.SetFrontendURL)
+	if err == nil && setting.Value != "" {
+		return strings.TrimSuffix(setting.Value, "/")
+	}
+
+	// 2. ถ้าไม่มีใน DB ให้ลองดึงจาก Environment Variable
+	envURL := os.Getenv("FRONTEND_URL")
+	if envURL != "" {
+		return strings.TrimSuffix(envURL, "/")
+	}
+
+	// 3. สุดท้ายถ้าไม่มีอะไรเลย ให้ใช้ Default localhost
+	return "http://localhost:3000"
 }

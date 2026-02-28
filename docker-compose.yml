@@ -47,6 +47,7 @@ services:
       DB_PASSWORD: password123
       DB_NAME: tunorth_edms_db
       DB_PORT: 5432
+      FRONTEND_URL: http://localhost:3000
       TELEGRAM_BOT_TOKEN: "YOUR_BOT_TOKEN_HERE" # จะใส่ทีหลัง
     depends_on:
       - db

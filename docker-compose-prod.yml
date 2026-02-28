@@ -16,6 +16,7 @@ services:
       - ALLOW_ORIGINS=https://edms.tn.ac.th
       # ตั้งค่า JWT Secret (ควรเปลี่ยนให้ยากๆ)
       - JWT_SECRET=SecretJa
+      - FRONTEND_URL=https://edms.tn.ac.th
     volumes:
       # 👇 Map โฟลเดอร์รูปภาพออกมาข้างนอก เพื่อให้รูปไม่หายและแก้ไขสิทธิ์ได้
       - ./backend/uploads:/app/uploads

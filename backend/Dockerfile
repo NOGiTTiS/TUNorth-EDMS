@@ -29,6 +29,9 @@ ENV TZ=Asia/Bangkok
 # Copy binary from builder
 COPY --from=builder /app/main .
 
+# 👇 [เพิ่มบรรทัดนี้] Copy โฟลเดอร์ assets (ที่มี fonts) มาด้วย
+COPY --from=builder /app/assets ./assets
+
 # สร้างโฟลเดอร์ uploads รอไว้ (เผื่อ volume ไม่ map)
 RUN mkdir -p uploads/settings uploads/documents
 

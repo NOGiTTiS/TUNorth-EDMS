@@ -536,6 +536,18 @@ export default function SettingsPage() {
                   Token นี้
                 </p>
               </div>
+              <div className="space-y-2 max-w-2xl">
+                <Label>Frontend URL (สำหรับลิงก์ในแจ้งเตือน)</Label>
+                <Input
+                  placeholder="https://edms.tn.ac.th"
+                  value={settings.frontend_url || ""}
+                  onChange={(e) => handleChange("frontend_url", e.target.value)}
+                />
+                <p className="text-xs text-slate-500">
+                  ระบุ URL ของหน้าเว็บ (ไม่ต้องมี / ต่อท้าย)
+                  เพื่อใช้สร้างลิงก์ใน Telegram
+                </p>
+              </div>
             </CardContent>
           </Card>
         </TabsContent>
