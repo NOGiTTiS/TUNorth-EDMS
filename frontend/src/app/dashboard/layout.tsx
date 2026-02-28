@@ -120,7 +120,7 @@ export default function DashboardLayout({
   }
 
   return (
-    <div className="flex h-screen bg-slate-50 dark:bg-slate-900 overflow-hidden print:h-auto print:overflow-visible">
+    <div className="flex h-screen dark:bg-slate-900 overflow-hidden print:h-auto print:overflow-visible">
       {/* Overlay สำหรับ Mobile */}
       {isSidebarOpen && (
         <div
@@ -223,7 +223,7 @@ export default function DashboardLayout({
 
       {/* Main Content Area */}
       {/* เพิ่ม print:overflow-visible และ print:block เพื่อแก้ปัญหาพิมพ์หน้า Logbook */}
-      <main className="flex-1 overflow-y-auto print:overflow-visible print:block print:h-auto bg-slate-50">
+      <main className="flex-1 overflow-y-auto print:overflow-visible print:block print:h-auto">
         {/* Mobile Header */}
         <header className="h-16 bg-white dark:bg-slate-800 border-b flex items-center justify-between px-6 md:hidden print:hidden shrink-0">
           <span className="font-bold text-theme-main">

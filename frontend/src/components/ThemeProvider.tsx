@@ -40,7 +40,7 @@ export default function ThemeProvider({
 
   return (
     <div
-      className="theme-wrapper min-h-screen"
+      className="theme-wrapper min-h-screen bg-theme-grad"
       style={
         {
           "--theme-main": settings.theme_main_color || "#db2777",
