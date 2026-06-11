@@ -113,142 +113,164 @@ func (s *documentService) StampAndSign(docID uint, adminID uint, deptIDs []uint,
 	pdf := gopdf.GoPdf{}
 	pdf.Start(gopdf.Config{PageSize: *gopdf.PageSizeA4}) // A4 (595.28 x 841.89)
 
-	// Import หน้าแรกของ PDF ต้นฉบับ
-	tpl := pdf.ImportPage(doc.FilePath, 1, "/MediaBox")
-	pdf.AddPage()
-	pdf.UseImportedTemplate(tpl, 0, 0, 595, 842)
-
 	// โหลดฟอนต์ภาษาไทย (ไฟล์ต้องอยู่ที่ backend/assets/fonts/Prompt-Regular.ttf)
 	err = pdf.AddTTFFont("prompt", "./assets/fonts/Prompt-Regular.ttf")
 	if err != nil {
 		return fmt.Errorf("ไม่สามารถโหลดฟอนต์ภาษาไทยได้: %v", err)
 	}
 
-	// =========================================================
-	// ตั้งค่าสีน้ำเงินสำหรับตราประทับ (สีน้ำเงินหมึกประทับ)
-	// =========================================================
-	pdf.SetStrokeColor(0, 0, 180) // สีของเส้นขอบ (RGB)
-	pdf.SetTextColor(0, 0, 180)   // สีของตัวอักษร (RGB)
-	pdf.SetFillColor(245, 245, 245)
+	numPages := len(pdf.GetPageSizes(doc.FilePath))
+	if numPages == 0 {
+		numPages = 1
+	}
 
-	// =========================================================
-	// ส่วนที่ 1: ตราประทับเลขรับ (มุมบนขวา - เลียนแบบภาพ 5.png)
-	// =========================================================
-	pdf.SetLineWidth(1)
-	startX, startY := 390.0, 30.0
-	pdf.RectFromUpperLeftWithStyle(startX, startY, 185.0, 165.0, "D") // วาดกรอบสี่เหลี่ยม
+	for i := 1; i <= numPages; i++ {
+		tpl := pdf.ImportPage(doc.FilePath, i, "/MediaBox")
+		pdf.AddPage()
+		pdf.UseImportedTemplate(tpl, 0, 0, 595, 842)
 
-	pdf.SetFont("prompt", "", 10)
-	pdf.SetXY(startX+10, startY+15)
-	pdf.Cell(nil, "โรงเรียนเตรียมอุดมศึกษา ภาคเหนือ")
+		if i == 1 {
+			// =========================================================
+			// ตั้งค่าสีน้ำเงินสำหรับตราประทับ (สีน้ำเงินหมึกประทับ)
+			// =========================================================
+			pdf.SetStrokeColor(0, 0, 180) // สีของเส้นขอบ (RGB)
+			pdf.SetTextColor(0, 0, 180)   // สีของตัวอักษร (RGB)
+			pdf.SetFillColor(245, 245, 245)
 
-	pdf.SetXY(startX+10, startY+35)
-	pdf.Cell(nil, fmt.Sprintf("เลขรับ      %s", doc.ReceiveNo))
+			// =========================================================
+			// ส่วนที่ 1: ตราประทับเลขรับ (มุมบนขวา - เลียนแบบภาพ 5.png)
+			// =========================================================
+			pdf.SetLineWidth(1)
+			startX, startY := 390.0, 30.0
 
-	// จัดการรูปแบบวันที่ไทย (พ.ศ.)
-	thaiDate := fmt.Sprintf("%02d/%02d/%d", doc.ReceiveDate.Day(), doc.ReceiveDate.Month(), doc.ReceiveDate.Year()+543)
-	pdf.SetXY(startX+10, startY+55)
-	pdf.Cell(nil, fmt.Sprintf("วันที่        %s", thaiDate))
+			// ค้นหาฝ่ายที่ได้รับมอบหมาย
+			var assignedDepts []domain.Department
+			for _, dept := range allDepts {
+				for _, sid := range deptIDs {
+					if dept.ID == sid {
+						assignedDepts = append(assignedDepts, dept)
+						break
+					}
+				}
+			}
 
-	pdf.SetXY(startX+10, startY+75)
-	pdf.Cell(nil, fmt.Sprintf("เวลา        %s น.", time.Now().Format("15:04")))
+			// คำนวณความสูงของกรอบตามจำนวนฝ่ายที่ได้รับมอบหมาย
+			boxHeight := 95.0 + float64(len(assignedDepts))*14.0 + 5.0
+			if len(assignedDepts) == 0 {
+				boxHeight = 110.0 // ให้มีพื้นที่ว่างไว้บ้างถ้าไม่มีฝ่ายที่รับมอบหมาย
+			}
 
-	// วาด Checkbox สำหรับฝ่ายต่างๆ
-	pdf.SetFont("prompt", "", 8)
-	deptY := startY + 95.0
-	for _, dept := range allDepts {
-		// วาดช่องสี่เหลี่ยมเล็กๆ
-		pdf.RectFromUpperLeftWithStyle(startX+10, deptY, 8, 8, "D")
+			pdf.RectFromUpperLeftWithStyle(startX, startY, 185.0, boxHeight, "D") // วาดกรอบสี่เหลี่ยม
 
-		// ติ๊กเครื่องหมาย / ถ้าเป็นฝ่ายที่ถูกเลือก
-		for _, sid := range deptIDs {
-			if dept.ID == sid {
-				pdf.SetXY(startX+11, deptY) //-2
+			pdf.SetFont("prompt", "", 10)
+			pdf.SetXY(startX+10, startY+15)
+			pdf.Cell(nil, "โรงเรียนเตรียมอุดมศึกษา ภาคเหนือ")
+
+			pdf.SetXY(startX+10, startY+35)
+			pdf.Cell(nil, fmt.Sprintf("เลขรับ      %s", doc.ReceiveNo))
+
+			// จัดการรูปแบบวันที่ไทย (พ.ศ.)
+			thaiDate := fmt.Sprintf("%02d/%02d/%d", doc.ReceiveDate.Day(), doc.ReceiveDate.Month(), doc.ReceiveDate.Year()+543)
+			pdf.SetXY(startX+10, startY+55)
+			pdf.Cell(nil, fmt.Sprintf("วันที่        %s", thaiDate))
+
+			pdf.SetXY(startX+10, startY+75)
+			pdf.Cell(nil, fmt.Sprintf("เวลา        %s น.", time.Now().Format("15:04")))
+
+			// วาด Checkbox สำหรับฝ่ายที่ได้รับมอบหมายเท่านั้น
+			pdf.SetFont("prompt", "", 8)
+			deptY := startY + 95.0
+			for _, dept := range assignedDepts {
+				// วาดช่องสี่เหลี่ยมเล็กๆ
+				pdf.RectFromUpperLeftWithStyle(startX+10, deptY, 8, 8, "D")
+
+				// ติ๊กเครื่องหมาย / เนื่องจากเป็นฝ่ายที่ได้รับการมอบหมายแน่นอน
+				pdf.SetXY(startX+11, deptY)
 				pdf.Cell(nil, "/")
-			}
-		}
 
-		pdf.SetXY(startX+25, deptY) //+7
-		pdf.Cell(nil, dept.Name)
-		deptY += 14 // เว้นบรรทัด //14
-	}
-
-	// =========================================================
-	// ส่วนที่ 2: ตราประทับเสนอ ผอ. (เล็กลงกว่า ผอ. เพื่อลำดับความสำคัญ)
-	// =========================================================
-	propX, propY := 50.0, 420.0
-	boxW, boxH := 220.0, 150.0 // ลดขนาดลงจาก 240.0 x 160.0
-
-	// วาดกรอบสี่เหลี่ยม
-	pdf.SetLineWidth(0.8) // เส้นบางลงจาก 1.0
-	pdf.RectFromUpperLeftWithStyle(propX, propY, boxW, boxH, "D")
-
-	// บรรทัดที่ 1: เรียน
-	pdf.SetFont("prompt", "", 10) // ลดขนาดจาก 12
-	pdf.SetXY(propX+10, propY+12)
-	pdf.Cell(nil, "เรียน  ผู้อำนวยการโรงเรียน")
-
-	// บรรทัดที่ 2: เพื่อโปรดทราบ (พร้อมวาดเส้นจุดไข่ปลาต่อท้าย)
-	pdf.SetXY(propX+20, propY+32)
-	pdf.Cell(nil, "เพื่อโปรดทราบ")
-	pdf.SetXY(propX+75, propY+32)
-	pdf.Cell(nil, "............................................................")
-
-	// บรรทัดที่ 3 เป็นต้นไป: จัดการข้อความที่รับมาจากหน้าเว็บ
-	pdf.SetFont("prompt", "", 9) // ลดขนาดจาก 11
-	textY := propY + 52.0
-
-	if noteToDirector != "" {
-		lines, _ := pdf.SplitText(noteToDirector, boxW-25)
-		for _, line := range lines {
-			if textY > propY+85 {
-				break
+				pdf.SetXY(startX+25, deptY)
+				pdf.Cell(nil, dept.Name)
+				deptY += 14 // เว้นบรรทัด
 			}
 
-			// วาดข้อความ
-			pdf.SetXY(propX+20, textY-2)
-			pdf.Cell(nil, line)
+			// =========================================================
+			// ส่วนที่ 2: ตราประทับเสนอ ผอ. (เล็กลงกว่า ผอ. เพื่อลำดับความสำคัญ)
+			// =========================================================
+			propX, propY := 30.0, 420.0
+			boxW, boxH := 220.0, 150.0 // ลดขนาดลงจาก 240.0 x 160.0
 
-			// วาดเส้นจุดไข่ปลารองรับข้อความ
-			pdf.SetXY(propX+12, textY)
-			pdf.Cell(nil, "...........................................................................................")
+			// วาดกรอบสี่เหลี่ยม
+			pdf.SetLineWidth(0.8) // เส้นบางลงจาก 1.0
+			pdf.RectFromUpperLeftWithStyle(propX, propY, boxW, boxH, "D")
 
-			textY += 18.0
-		}
-	}
+			// บรรทัดที่ 1: เรียน
+			pdf.SetFont("prompt", "", 10) // ลดขนาดจาก 12
+			pdf.SetXY(propX+10, propY+12)
+			pdf.Cell(nil, "เรียน  ผู้อำนวยการโรงเรียน")
 
-	// เติมเส้นจุดไข่ปลาบรรทัดว่าง
-	for textY <= propY+75.0 {
-		pdf.SetXY(propX+12, textY)
-		pdf.Cell(nil, "...........................................................................................")
-		textY += 18.0
-	}
+			// บรรทัดที่ 2: เพื่อโปรดทราบ (พร้อมวาดเส้นจุดไข่ปลาต่อท้าย)
+			pdf.SetXY(propX+20, propY+32)
+			pdf.Cell(nil, "เพื่อโปรดทราบ")
+			pdf.SetXY(propX+75, propY+32)
+			pdf.Cell(nil, "............................................................")
 
-	// แปะลายเซ็นสดธุรการกลาง
-	if signatureData != "" {
-		rawImgData := strings.Split(signatureData, ",")[1]
-		dec, err := base64.StdEncoding.DecodeString(rawImgData)
-		if err == nil {
-			imgH, err := gopdf.ImageHolderByBytes(dec)
-			if err == nil {
-				// วางลายเซ็นเหนือชื่อ
-				pdf.ImageByHolder(imgH, propX+(boxW-75)/2, propY+85, &gopdf.Rect{W: 75, H: 40})
+			// บรรทัดที่ 3 เป็นต้นไป: จัดการข้อความที่รับมาจากหน้าเว็บ
+			pdf.SetFont("prompt", "", 9) // ลดขนาดจาก 11
+			textY := propY + 52.0
+
+			if noteToDirector != "" {
+				lines, _ := pdf.SplitText(noteToDirector, boxW-25)
+				for _, line := range lines {
+					if textY > propY+85 {
+						break
+					}
+
+					// วาดข้อความ
+					pdf.SetXY(propX+20, textY-2)
+					pdf.Cell(nil, line)
+
+					// วาดเส้นจุดไข่ปลารองรับข้อความ
+					pdf.SetXY(propX+12, textY)
+					pdf.Cell(nil, "...........................................................................................")
+
+					textY += 18.0
+				}
 			}
+
+			// เติมเส้นจุดไข่ปลาบรรทัดว่าง
+			for textY <= propY+75.0 {
+				pdf.SetXY(propX+12, textY)
+				pdf.Cell(nil, "...........................................................................................")
+				textY += 18.0
+			}
+
+			// แปะลายเซ็นสดธุรการกลาง
+			if signatureData != "" {
+				rawImgData := strings.Split(signatureData, ",")[1]
+				dec, err := base64.StdEncoding.DecodeString(rawImgData)
+				if err == nil {
+					imgH, err := gopdf.ImageHolderByBytes(dec)
+					if err == nil {
+						// วางลายเซ็นเหนือชื่อ
+						pdf.ImageByHolder(imgH, propX+(boxW-75)/2, propY+85, &gopdf.Rect{W: 75, H: 40})
+					}
+				}
+			}
+
+			// เขียนชื่อ และ ตำแหน่ง (จัดกึ่งกลางกรอบ)
+			pdf.SetFont("prompt", "", 10) // ลดขนาดจาก 11
+			nameText := fmt.Sprintf("( %s )", adminUser.FullName)
+			nameWidth, _ := pdf.MeasureTextWidth(nameText)
+			pdf.SetXY(propX+(boxW-nameWidth)/2, propY+125)
+			pdf.Cell(nil, nameText)
+
+			pdf.SetFont("prompt", "", 8) // ลดขนาดจาก 10
+			titleText := "เจ้าหน้าที่ธุรการ"
+			titleWidth, _ := pdf.MeasureTextWidth(titleText)
+			pdf.SetXY(propX+(boxW-titleWidth)/2, propY+138)
+			pdf.Cell(nil, titleText)
 		}
 	}
-
-	// เขียนชื่อ และ ตำแหน่ง (จัดกึ่งกลางกรอบ)
-	pdf.SetFont("prompt", "", 10) // ลดขนาดจาก 11
-	nameText := fmt.Sprintf("( %s )", adminUser.FullName)
-	nameWidth, _ := pdf.MeasureTextWidth(nameText)
-	pdf.SetXY(propX+(boxW-nameWidth)/2, propY+125)
-	pdf.Cell(nil, nameText)
-
-	pdf.SetFont("prompt", "", 8) // ลดขนาดจาก 10
-	titleText := "เจ้าหน้าที่ธุรการ"
-	titleWidth, _ := pdf.MeasureTextWidth(titleText)
-	pdf.SetXY(propX+(boxW-titleWidth)/2, propY+138)
-	pdf.Cell(nil, titleText)
 
 	// 3. บันทึกไฟล์ใหม่และอัปเดตสถานะ
 	stampedPath := strings.Replace(doc.FilePath, ".pdf", "_final.pdf", 1)
@@ -305,128 +327,136 @@ func (s *documentService) KasienDocument(docID uint, userID uint, req ports.Rout
 	pdf := gopdf.GoPdf{}
 	pdf.Start(gopdf.Config{PageSize: *gopdf.PageSizeA4})
 
-	// Import หน้าล่าสุดของหนังสือ (ที่มีตราประทับธุรการอยู่แล้ว)
-	tpl := pdf.ImportPage(doc.FilePath, 1, "/MediaBox")
-	pdf.AddPage()
-	pdf.UseImportedTemplate(tpl, 0, 0, 595, 842)
-
 	// โหลดฟอนต์ภาษาไทย
 	err = pdf.AddTTFFont("prompt", "./assets/fonts/Prompt-Regular.ttf")
 	if err != nil {
 		return fmt.Errorf("font error: %v", err)
 	}
 
-	// =========================================================
-	// ตั้งค่าสีน้ำเงินสำหรับตราประทับ ผอ. (สีหมึกน้ำเงิน)
-	// =========================================================
-	pdf.SetStrokeColor(0, 0, 180)
-	pdf.SetTextColor(0, 0, 180)
-	pdf.SetLineWidth(1)
-
-	// กำหนดพิกัดและขนาดกรอบตรายาง ผอ. (ขวาล่าง)
-	boxX, boxY := 330.0, 580.0
-	boxWidth := 245.0
-	boxHeight := 220.0 // ขยายความสูงเผื่อข้อความยาว
-
-	// วาดกรอบสี่เหลี่ยมตรายาง
-	pdf.RectFromUpperLeftWithStyle(boxX, boxY, boxWidth, boxHeight, "D")
-
-	// รายการตัวเลือกคำสั่งการ
-	options := []string{
-		"ทราบ",
-		"อนุมัติ/อนุญาต",
-		"เห็นชอบตามเสนอ",
-		"มอบหมาย/สั่งการ",
+	numPages := len(pdf.GetPageSizes(doc.FilePath))
+	if numPages == 0 {
+		numPages = 1
 	}
 
-	currentY := boxY + 20.0
-	pdf.SetFont("prompt", "", 11)
+	for i := 1; i <= numPages; i++ {
+		tpl := pdf.ImportPage(doc.FilePath, i, "/MediaBox")
+		pdf.AddPage()
+		pdf.UseImportedTemplate(tpl, 0, 0, 595, 842)
 
-	for _, opt := range options {
-		// วาดช่อง Checkbox
-		pdf.RectFromUpperLeftWithStyle(boxX+15, currentY, 10, 10, "D")
+		if i == 1 {
+			// =========================================================
+			// ตั้งค่าสีน้ำเงินสำหรับตราประทับ ผอ. (สีหมึกน้ำเงิน)
+			// =========================================================
+			pdf.SetStrokeColor(0, 0, 180)
+			pdf.SetTextColor(0, 0, 180)
+			pdf.SetLineWidth(1)
 
-		// ตรวจสอบสถานะการเลือก (ติ๊กถูก /)
-		if strings.Contains(req.Action, opt) {
-			pdf.SetXY(boxX+16, currentY-2)
-			pdf.SetFont("prompt", "", 14)
-			pdf.Cell(nil, "/")
-			pdf.SetFont("prompt", "", 11)
-		}
+			// กำหนดพิกัดและขนาดกรอบตรายาง ผอ. (ขวาล่าง)
+			boxX, boxY := 330.0, 580.0
+			boxWidth := 245.0
+			boxHeight := 220.0 // ขยายความสูงเผื่อข้อความยาว
 
-		// เขียนข้อความ Option
-		pdf.SetXY(boxX+35, currentY)
-		pdf.Cell(nil, opt)
+			// วาดกรอบสี่เหลี่ยมตรายาง
+			pdf.RectFromUpperLeftWithStyle(boxX, boxY, boxWidth, boxHeight, "D")
 
-		if opt == "มอบหมาย/สั่งการ" {
-			pdf.SetXY(boxX+110, currentY)
-			pdf.Cell(nil, "....................................................")
-		}
-		currentY += 15.0
-	}
-
-	// =========================================================
-	// ส่วนการจัดการข้อความสั่งการ (CommandNote) - รองรับการขึ้นบรรทัดใหม่
-	// =========================================================
-	padding := 20.0
-	maxWidth := boxWidth - (padding * 2)
-	pdf.SetFont("prompt", "", 10)
-
-	if req.CommandNote != "" {
-		// ตัดคำให้อยู่ในขอบเขตความกว้างของกรอบ
-		lines, _ := pdf.SplitText(req.CommandNote, maxWidth)
-
-		textY := currentY + 5.0
-		for _, line := range lines {
-			// ตรวจสอบไม่ให้พิมพ์ล้นกรอบลงไปทับชื่อ
-			if textY > boxY+140 {
-				break
+			// รายการตัวเลือกคำสั่งการ
+			options := []string{
+				"ทราบ",
+				"อนุมัติ/อนุญาต",
+				"เห็นชอบตามเสนอ",
+				"มอบหมาย/สั่งการ",
 			}
-			pdf.SetXY(boxX+padding, textY)
-			pdf.Cell(nil, line)
 
-			// วาดเส้นจุดไข่ปลามารองรับข้อความ (Optional - เพื่อความสวยงาม)
-			pdf.SetXY(boxX+padding, textY+2)
-			pdf.Cell(nil, "..........................................................................................................")
+			currentY := boxY + 20.0
+			pdf.SetFont("prompt", "", 11)
 
-			textY += 16.0 // ระยะบรรทัด
+			for _, opt := range options {
+				// วาดช่อง Checkbox
+				pdf.RectFromUpperLeftWithStyle(boxX+15, currentY, 10, 10, "D")
+
+				// ตรวจสอบสถานะการเลือก (ติ๊กถูก /)
+				if strings.Contains(req.Action, opt) {
+					pdf.SetXY(boxX+16, currentY-2)
+					pdf.SetFont("prompt", "", 14)
+					pdf.Cell(nil, "/")
+					pdf.SetFont("prompt", "", 11)
+				}
+
+				// เขียนข้อความ Option
+				pdf.SetXY(boxX+35, currentY)
+				pdf.Cell(nil, opt)
+
+				if opt == "มอบหมาย/สั่งการ" {
+					pdf.SetXY(boxX+110, currentY)
+					pdf.Cell(nil, "....................................................")
+				}
+				currentY += 15.0
+			}
+
+			// =========================================================
+			// ส่วนการจัดการข้อความสั่งการ (CommandNote) - รองรับการขึ้นบรรทัดใหม่
+			// =========================================================
+			padding := 20.0
+			maxWidth := boxWidth - (padding * 2)
+			pdf.SetFont("prompt", "", 10)
+
+			if req.CommandNote != "" {
+				// ตัดคำให้อยู่ในขอบเขตความกว้างของกรอบ
+				lines, _ := pdf.SplitText(req.CommandNote, maxWidth)
+
+				textY := currentY + 5.0
+				for _, line := range lines {
+					// ตรวจสอบไม่ให้พิมพ์ล้นกรอบลงไปทับชื่อ
+					if textY > boxY+140 {
+						break
+					}
+					pdf.SetXY(boxX+padding, textY)
+					pdf.Cell(nil, line)
+
+					// วาดเส้นจุดไข่ปลามารองรับข้อความ (Optional - เพื่อความสวยงาม)
+					pdf.SetXY(boxX+padding, textY+2)
+					pdf.Cell(nil, "..........................................................................................................")
+
+					textY += 16.0 // ระยะบรรทัด
+				}
+			} else {
+				// ถ้าไม่มีข้อความ ให้วาดเส้นว่างไว้ 2 บรรทัด
+				pdf.SetXY(boxX+padding, currentY+5)
+				pdf.Cell(nil, "..........................................................................................................")
+				pdf.SetXY(boxX+padding, currentY+21)
+				pdf.Cell(nil, "..........................................................................................................")
+			}
+
+			// =========================================================
+			// ส่วนลายเซ็นและชื่อตำแหน่ง
+			// =========================================================
+
+			// แปะลายเซ็น ผอ. (Signature Data)
+			if req.SignatureData != "" {
+				rawImgData := strings.Split(req.SignatureData, ",")[1]
+				dec, _ := base64.StdEncoding.DecodeString(rawImgData)
+				imgH, err := gopdf.ImageHolderByBytes(dec)
+				if err == nil {
+					// วาดลายเซ็นให้อยู่ด้านบนของชื่อ
+					pdf.ImageByHolder(imgH, boxX+80, boxY+135, &gopdf.Rect{W: 85, H: 45})
+				}
+			}
+
+			// พิมพ์ชื่อ ผอ.
+			pdf.SetFont("prompt", "", 11)
+			nameText := fmt.Sprintf("( %s )", user.FullName)
+			nameWidth, _ := pdf.MeasureTextWidth(nameText)
+			pdf.SetXY(boxX+(boxWidth-nameWidth)/2, boxY+185)
+			pdf.Cell(nil, nameText)
+
+			// พิมพ์ตำแหน่ง
+			pdf.SetFont("prompt", "", 9)
+			titleText := "ผู้อำนวยการโรงเรียนเตรียมอุดมศึกษา ภาคเหนือ"
+			titleWidth, _ := pdf.MeasureTextWidth(titleText)
+			pdf.SetXY(boxX+(boxWidth-titleWidth)/2, boxY+202)
+			pdf.Cell(nil, titleText)
 		}
-	} else {
-		// ถ้าไม่มีข้อความ ให้วาดเส้นว่างไว้ 2 บรรทัด
-		pdf.SetXY(boxX+padding, currentY+5)
-		pdf.Cell(nil, "..........................................................................................................")
-		pdf.SetXY(boxX+padding, currentY+21)
-		pdf.Cell(nil, "..........................................................................................................")
 	}
-
-	// =========================================================
-	// ส่วนลายเซ็นและชื่อตำแหน่ง
-	// =========================================================
-
-	// แปะลายเซ็น ผอ. (Signature Data)
-	if req.SignatureData != "" {
-		rawImgData := strings.Split(req.SignatureData, ",")[1]
-		dec, _ := base64.StdEncoding.DecodeString(rawImgData)
-		imgH, err := gopdf.ImageHolderByBytes(dec)
-		if err == nil {
-			// วาดลายเซ็นให้อยู่ด้านบนของชื่อ
-			pdf.ImageByHolder(imgH, boxX+80, boxY+135, &gopdf.Rect{W: 85, H: 45})
-		}
-	}
-
-	// พิมพ์ชื่อ ผอ.
-	pdf.SetFont("prompt", "", 11)
-	nameText := fmt.Sprintf("( %s )", user.FullName)
-	nameWidth, _ := pdf.MeasureTextWidth(nameText)
-	pdf.SetXY(boxX+(boxWidth-nameWidth)/2, boxY+185)
-	pdf.Cell(nil, nameText)
-
-	// พิมพ์ตำแหน่ง
-	pdf.SetFont("prompt", "", 9)
-	titleText := "ผู้อำนวยการโรงเรียนเตรียมอุดมศึกษา ภาคเหนือ"
-	titleWidth, _ := pdf.MeasureTextWidth(titleText)
-	pdf.SetXY(boxX+(boxWidth-titleWidth)/2, boxY+202)
-	pdf.Cell(nil, titleText)
 
 	// 3. บันทึกไฟล์และอัปเดตข้อมูล
 	finalPath := strings.Replace(doc.FilePath, "_stamped.pdf", "_final.pdf", 1)
@@ -677,33 +707,45 @@ func (s *documentService) ForwardToDeputy(docID uint, senderID uint, note string
 		return fmt.Errorf("user has no department")
 	}
 
+	// 2. เริ่มต้นสร้าง PDF
 	pdf := gopdf.GoPdf{}
 	pdf.Start(gopdf.Config{PageSize: *gopdf.PageSizeA4})
 
-	tpl := pdf.ImportPage(doc.FilePath, 1, "/MediaBox")
-	pdf.AddPage()
-	pdf.UseImportedTemplate(tpl, 0, 0, 595, 842)
-
 	_ = pdf.AddTTFFont("prompt", "./assets/fonts/Prompt-Regular.ttf")
-	pdf.SetStrokeColor(0, 0, 180) // สีน้ำเงิน
-	pdf.SetTextColor(0, 0, 180)
 
-	// =========================================================
-	// ตราลงรับฝ่าย (มุมซ้ายบน) - คงไว้ตามเดิม
-	// =========================================================
-	pdf.SetLineWidth(1)
-	pdf.RectFromUpperLeftWithStyle(30, 30, 180, 80, "D")
-	pdf.SetFont("prompt", "", 12)
-	pdf.SetXY(40, 45)
-	pdf.Cell(nil, sender.Department.Name)
-	pdf.SetFont("prompt", "", 9)
-	pdf.SetXY(40, 62)
-	pdf.Cell(nil, "โรงเรียนเตรียมอุดมศึกษา ภาคเหนือ")
-	pdf.SetXY(40, 77)
-	pdf.Cell(nil, fmt.Sprintf("รับหนังสือเวลา   %s น.", time.Now().Format("15:04")))
-	thaiDate := fmt.Sprintf("%02d/%02d/%d", time.Now().Day(), time.Now().Month(), time.Now().Year()+543)
-	pdf.SetXY(40, 92)
-	pdf.Cell(nil, fmt.Sprintf("วันที่   %s", thaiDate))
+	numPages := len(pdf.GetPageSizes(doc.FilePath))
+	if numPages == 0 {
+		numPages = 1
+	}
+
+	for i := 1; i <= numPages; i++ {
+		tpl := pdf.ImportPage(doc.FilePath, i, "/MediaBox")
+		pdf.AddPage()
+		pdf.UseImportedTemplate(tpl, 0, 0, 595, 842)
+
+		if i == 1 {
+			pdf.SetStrokeColor(0, 0, 180) // สีน้ำเงิน
+			pdf.SetTextColor(0, 0, 180)
+
+			// =========================================================
+			// ตราลงรับฝ่าย (มุมซ้ายบน) - คงไว้ตามเดิม
+			// =========================================================
+			pdf.SetLineWidth(1)
+			pdf.RectFromUpperLeftWithStyle(30, 30, 180, 80, "D")
+			pdf.SetFont("prompt", "", 12)
+			pdf.SetXY(40, 45)
+			pdf.Cell(nil, fmt.Sprintf("ฝ่าย%s", sender.Department.Name))
+			pdf.SetFont("prompt", "", 9)
+			pdf.SetXY(40, 62)
+			pdf.Cell(nil, "โรงเรียนเตรียมอุดมศึกษา ภาคเหนือ")
+			
+			thaiDate := fmt.Sprintf("%02d/%02d/%d", time.Now().Day(), time.Now().Month(), time.Now().Year()+543)
+			pdf.SetXY(40, 77)
+			pdf.Cell(nil, fmt.Sprintf("วันที่   %s", thaiDate))
+			pdf.SetXY(40, 92)
+			pdf.Cell(nil, fmt.Sprintf("รับหนังสือเวลา   %s น.", time.Now().Format("15:04")))
+		}
+	}
 
 	// ตัดส่วนที่ 2 (ตราประทับเสนอรองฯ) ออกไปทั้งหมดตามที่ขอครับ
 
@@ -768,99 +810,103 @@ func (s *documentService) DeputySign(docID uint, userID uint, req ports.RouteReq
 		return err
 	}
 
+	// 2. เริ่มต้นสร้าง PDF
 	pdf := gopdf.GoPdf{}
 	pdf.Start(gopdf.Config{PageSize: *gopdf.PageSizeA4})
 
-	tpl := pdf.ImportPage(doc.FilePath, 1, "/MediaBox")
-	pdf.AddPage()
-	pdf.UseImportedTemplate(tpl, 0, 0, 595, 842)
-
 	_ = pdf.AddTTFFont("prompt", "./assets/fonts/Prompt-Regular.ttf")
-	pdf.SetStrokeColor(0, 0, 180) // สีน้ำเงิน
-	pdf.SetTextColor(0, 0, 180)
-	pdf.SetLineWidth(1)
 
-	// =========================================================
-	// ตราประทับคำสั่งการ รอง ผอ. (ทำให้เล็กลงกว่า ผอ. เพื่อลำดับความสำคัญ)
-	// =========================================================
-	boxX, boxY := 40.0, 580.0
-	boxWidth := 220.0  // ลดขนาดลงจาก 245.0
-	boxHeight := 200.0 // ลดขนาดลงจาก 220.0
-
-	pdf.SetLineWidth(0.8) // เส้นบางลงจาก 1.0
-
-	// ตีกรอบสี่เหลี่ยม
-	pdf.RectFromUpperLeftWithStyle(boxX, boxY, boxWidth, boxHeight, "D")
-
-	// บรรทัดที่ 1: เรียน ฝ่าย...
-	pdf.SetFont("prompt", "", 10) // ลดขนาดจาก 12
-	pdf.SetXY(boxX+10, boxY+12)
-	pdf.Cell(nil, "เรียน  "+user.Department.Name)
-
-	// บรรทัดที่ 2: เพื่อโปรดดำเนินการ
-	pdf.SetXY(boxX+15, boxY+32)
-	pdf.Cell(nil, "เพื่อโปรดดำเนินการ")
-
-	// รวมคำสั่งการที่เลือกรวมกับข้อความ
-	fullNote := req.Action
-	if req.CommandNote != "" {
-		fullNote += " " + req.CommandNote
+	numPages := len(pdf.GetPageSizes(doc.FilePath))
+	if numPages == 0 {
+		numPages = 1
 	}
 
-	// พิมพ์ข้อความและวาดเส้นจุดไข่ปลา (รองรับการขึ้นบรรทัดใหม่ไม่ให้ล้นกรอบ)
-	pdf.SetFont("prompt", "", 9) // ลดขนาดจาก 11
-	textY := boxY + 52.0
+	for i := 1; i <= numPages; i++ {
+		tpl := pdf.ImportPage(doc.FilePath, i, "/MediaBox")
+		pdf.AddPage()
+		pdf.UseImportedTemplate(tpl, 0, 0, 595, 842)
 
-	if fullNote != "" {
-		// หักลบ Padding ซ้าย-ขวา เพื่อไม่ให้ข้อความชนขอบ
-		lines, _ := pdf.SplitText(fullNote, boxWidth-25)
-		for _, line := range lines {
-			// ป้องกันไม่ให้เขียนทับลงไปถึงลายเซ็น
-			if textY > boxY+105 {
-				break
+		if i == 1 {
+			pdf.SetStrokeColor(0, 0, 180) // สีน้ำเงิน
+			pdf.SetTextColor(0, 0, 180)
+			pdf.SetLineWidth(1)
+
+			// =========================================================
+			// ตราประทับคำสั่งการ รอง ผอ. (ทำให้เล็กลงกว่า ผอ. เพื่อลำดับความสำคัญ)
+			// =========================================================
+			boxX, boxY := 30.0, 580.0
+			boxWidth := 220.0  // ลดขนาดลงจาก 245.0
+			boxHeight := 200.0 // ลดขนาดลงจาก 220.0
+
+			pdf.SetLineWidth(0.8) // เส้นบางลงจาก 1.0
+
+			// ตีกรอบสี่เหลี่ยม
+			pdf.RectFromUpperLeftWithStyle(boxX, boxY, boxWidth, boxHeight, "D")
+
+			// บรรทัดที่ 1: เรียน ฝ่าย...
+			pdf.SetFont("prompt", "", 10) // ลดขนาดจาก 12
+			pdf.SetXY(boxX+10, boxY+12)
+			pdf.Cell(nil, "เรียน  ฝ่าย"+user.Department.Name)
+
+			// บรรทัดที่ 2: เพื่อโปรดดำเนินการ
+			pdf.SetXY(boxX+15, boxY+32)
+			pdf.Cell(nil, "เพื่อโปรดดำเนินการ")
+
+			// รวมคำสั่งการที่เลือกรวมกับข้อความ
+			fullNote := req.Action
+			if req.CommandNote != "" {
+				fullNote += " " + req.CommandNote
 			}
 
-			pdf.SetXY(boxX+15, textY-2)
-			pdf.Cell(nil, line)
+			// พิมพ์ข้อความและวาดเส้นจุดไข่ปลา (รองรับการขึ้นบรรทัดใหม่ไม่ให้ล้นกรอบ)
+			pdf.SetFont("prompt", "", 9) // ลดขนาดจาก 11
+			textY := boxY + 52.0
 
-			// วาดจุดไข่ปลารองรับข้อความ
-			pdf.SetXY(boxX+12, textY)
-			pdf.Cell(nil, "............................................................................................................")
-			textY += 14.0
+			if fullNote != "" {
+				// หักลบ Padding ซ้าย-ขวา เพื่อไม่ให้ข้อความชนขอบ
+				lines, _ := pdf.SplitText(fullNote, boxWidth-25)
+				for _, line := range lines {
+					// ป้องกันไม่ให้เขียนทับลงไปถึงลายเซ็น
+					if textY > boxY+105 {
+						break
+					}
+
+					pdf.SetXY(boxX+15, textY-2)
+					pdf.Cell(nil, line)
+
+					// วาดจุดไข่ปลารองรับข้อความ
+					pdf.SetXY(boxX+12, textY)
+					pdf.Cell(nil, "............................................................................................................")
+					textY += 14.0
+				}
+			}
+
+			// ลายเซ็นสด
+			if req.SignatureData != "" {
+				raw := strings.Split(req.SignatureData, ",")[1]
+				dec, _ := base64.StdEncoding.DecodeString(raw)
+				imgH, err := gopdf.ImageHolderByBytes(dec)
+				if err == nil {
+					// วางลายเซ็นในตำแหน่ง Y เดียวกับ ผอ.
+					pdf.ImageByHolder(imgH, boxX+(boxWidth-75)/2, boxY+115, &gopdf.Rect{W: 75, H: 40})
+				}
+			}
+
+			// ชื่อในวงเล็บ (จัดกึ่งกลางกรอบ)
+			pdf.SetFont("prompt", "", 10) // ลดขนาดจาก 11
+			nameText := fmt.Sprintf("( %s )", user.FullName)
+			nameWidth, _ := pdf.MeasureTextWidth(nameText)
+			pdf.SetXY(boxX+(boxWidth-nameWidth)/2, boxY+165) // ปรับ Y ขึ้นตามขนาดกล่องที่ลดลง
+			pdf.Cell(nil, nameText)
+
+			// ตำแหน่ง (จัดกึ่งกลางกรอบ)
+			pdf.SetFont("prompt", "", 8) // ลดขนาดจาก 9
+			titleText := "รองผู้อำนวยการโรงเรียนเตรียมอุดมศึกษา ภาคเหนือ"
+			titleWidth, _ := pdf.MeasureTextWidth(titleText)
+			pdf.SetXY(boxX+(boxWidth-titleWidth)/2, boxY+182) // ปรับ Y ขึ้น
+			pdf.Cell(nil, titleText)
 		}
 	}
-
-	// // วาดบรรทัดว่างจุดไข่ปลาให้เต็มพื้นที่ที่เหลือ (ก่อนถึงลายเซ็น)
-	// for textY <= boxY+100 {
-	// 	pdf.SetXY(boxX+12, textY)
-	// 	pdf.Cell(nil, "........................................................................................")
-	// 	textY += 18.0
-	// }
-
-	// ลายเซ็นสด
-	if req.SignatureData != "" {
-		raw := strings.Split(req.SignatureData, ",")[1]
-		dec, _ := base64.StdEncoding.DecodeString(raw)
-		imgH, err := gopdf.ImageHolderByBytes(dec)
-		if err == nil {
-			// วางลายเซ็นในตำแหน่ง Y เดียวกับ ผอ.
-			pdf.ImageByHolder(imgH, boxX+(boxWidth-75)/2, boxY+115, &gopdf.Rect{W: 75, H: 40})
-		}
-	}
-
-	// ชื่อในวงเล็บ (จัดกึ่งกลางกรอบ)
-	pdf.SetFont("prompt", "", 10) // ลดขนาดจาก 11
-	nameText := fmt.Sprintf("( %s )", user.FullName)
-	nameWidth, _ := pdf.MeasureTextWidth(nameText)
-	pdf.SetXY(boxX+(boxWidth-nameWidth)/2, boxY+165) // ปรับ Y ขึ้นตามขนาดกล่องที่ลดลง
-	pdf.Cell(nil, nameText)
-
-	// ตำแหน่ง (จัดกึ่งกลางกรอบ)
-	pdf.SetFont("prompt", "", 8) // ลดขนาดจาก 9
-	titleText := "รองผู้อำนวยการโรงเรียนเตรียมอุดมศึกษา ภาคเหนือ"
-	titleWidth, _ := pdf.MeasureTextWidth(titleText)
-	pdf.SetXY(boxX+(boxWidth-titleWidth)/2, boxY+182) // ปรับ Y ขึ้น
-	pdf.Cell(nil, titleText)
 
 	// =========================================================
 
